@@ -214,6 +214,18 @@ verify:
 
 ---
 
+## 完整文档
+
+| 文档 | 说明 |
+|------|------|
+| [配置参考](docs/configuration.md) | `config.yaml` 完整配置、Profile 模式、所有 CLI 命令详细参考 |
+| [MCP 工具参考](docs/mcp-reference.md) | 4 个 MCP 工具完整 I/O、流程强约束、自动初始化与迁移 |
+| [测试映射](docs/test-mapping.md) | 测试结果与 .feature 场景的三种映射方式 |
+| [插件开发](docs/plugin-guide.md) | Reader / Writer / Parser 插件开发与发布 |
+| [产品技术规格](docs/product-spec.md) | 完整产品技术规格书 |
+
+---
+
 ## 开发
 
 ```bash

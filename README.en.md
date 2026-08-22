@@ -214,6 +214,18 @@ verify:
 
 ---
 
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [Configuration](docs/configuration.md) | Full `config.yaml` reference, Profile modes, all CLI commands |
+| [MCP Tools](docs/mcp-reference.md) | Complete I/O for 4 MCP tools, workflow guards, auto-init & migration |
+| [Test Mapping](docs/test-mapping.md) | Three ways to map test results back to .feature scenarios |
+| [Plugin Development](docs/plugin-guide.md) | Build and publish Reader / Writer / Parser plugins |
+| [Product Spec](docs/product-spec.md) | Full product technical specification |
+
+---
+
 ## Development
 
 ```bash
