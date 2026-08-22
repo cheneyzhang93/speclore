@@ -1,19 +1,18 @@
 /**
  * XLSX reader — reads .xlsx files and extracts requirement tables.
  *
- * Uses exceljs for robust xlsx parsing with native TypeScript support.
+ * Uses xlsx (SheetJS) for xlsx parsing.
  *
  * @module core/requirement-reader/xlsx-reader
  */
 
 import { basename, extname } from 'node:path';
-import ExcelJS from 'exceljs';
+import { readFile, utils } from 'xlsx';
 import { formatCellValue } from '../../infra/excel-utils.js';
 import type { StructuredRequirement } from '../../types/index.js';
 
-export async function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
+export function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
+  const workbook = readFile(filePath);
 
   const id = basename(filePath, extname(filePath))
     .toLowerCase()
@@ -21,34 +20,46 @@ export async function readXlsxFile(filePath: string): Promise<StructuredRequirem
     .replace(/-+/g, '-');
 
   // Read the first sheet
-  const sheet = workbook.worksheets[0];
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) {
+    return Promise.reject(new Error(`No sheets found in ${filePath}`));
+  }
+  const sheet = workbook.Sheets[firstSheetName];
   if (!sheet) {
-    throw new Error(`No sheets found in ${filePath}`);
+    return Promise.reject(new Error(`Sheet "${firstSheetName}" not found in ${filePath}`));
   }
 
-  const title = sheet.name;
+  const title = firstSheetName;
 
-  // First row as headers, subsequent rows as data
-  const headers: string[] = [];
-  const rows: Record<string, string>[] = [];
+  // Convert sheet to array of arrays
+  const rows = utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' });
 
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) {
-      row.eachCell((cell, colNumber) => {
-        headers[colNumber - 1] = formatCellValue(cell.value);
-      });
-    } else {
-      const obj: Record<string, string> = {};
-      row.eachCell((cell, colNumber) => {
-        const key = headers[colNumber - 1] ?? `Col${colNumber}`;
-        obj[key] = formatCellValue(cell.value);
-      });
-      rows.push(obj);
-    }
+  if (rows.length === 0) {
+    return Promise.resolve({
+      id,
+      title,
+      description: '',
+      rawContent: '',
+      confidence: 0.85,
+    });
+  }
+
+  // First row as headers
+  const headers: string[] = (rows[0] as unknown[]).map(cell => formatCellValue(cell));
+  const dataRows = rows.slice(1);
+
+  // Convert to objects
+  const objects: Record<string, string>[] = dataRows.map(row => {
+    const obj: Record<string, string> = {};
+    row.forEach((cell, colNumber) => {
+      const key = headers[colNumber] ?? `Col${colNumber + 1}`;
+      obj[key] = formatCellValue(cell);
+    });
+    return obj;
   });
 
-  // Convert rows to structured text
-  const textRows = rows.map(row => {
+  // Convert to structured text
+  const textRows = objects.map(row => {
     const cells = Object.entries(row)
       .map(([key, value]) => `${key}: ${value}`)
       .join(' | ');
@@ -57,11 +68,11 @@ export async function readXlsxFile(filePath: string): Promise<StructuredRequirem
 
   const content = textRows.join('\n');
 
-  return {
+  return Promise.resolve({
     id,
     title,
     description: content,
     rawContent: content,
     confidence: 0.85,
-  };
+  });
 }

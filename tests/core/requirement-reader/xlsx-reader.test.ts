@@ -2,45 +2,35 @@
  * XLSX reader unit tests.
  *
  * Tests XLSX table extraction, ID derivation, and error handling.
- * Uses vi.mock to mock the exceljs module.
+ * Uses vi.mock to mock the xlsx module.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock exceljs module
-const mockEachRow = vi.fn();
-const mockWorksheet = {
-  name: 'Requirements',
-  eachRow: mockEachRow,
-};
+// Mock xlsx module
+const mockSheetToRowData = vi.fn();
 
-const mockReadFile = vi.fn().mockResolvedValue(undefined);
-const mockWorkbook = {
-  xlsx: { readFile: mockReadFile },
-  worksheets: [mockWorksheet],
-};
-
-vi.mock('exceljs', () => ({
-  default: {
-    Workbook: vi.fn(() => mockWorkbook),
+vi.mock('xlsx', () => ({
+  readFile: vi.fn(() => ({
+    SheetNames: ['Requirements'],
+    Sheets: { Requirements: {} },
+  })),
+  utils: {
+    sheet_to_json: mockSheetToRowData,
   },
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockReadFile.mockResolvedValue(undefined);
-  mockWorksheet.name = 'Requirements';
-  mockWorksheet.eachRow = mockEachRow;
-  mockWorkbook.worksheets = [mockWorksheet];
 });
 
 describe('readXlsxFile — table extraction', () => {
   it('should extract rows from the first sheet', async () => {
-    mockEachRow.mockImplementation((callback: Function) => {
-      callback({ eachCell: (cb: Function) => { cb({ value: 'ID' }, 1); cb({ value: 'Description' }, 2); cb({ value: 'Priority' }, 3); } }, 1);
-      callback({ eachCell: (cb: Function) => { cb({ value: 'REQ-1' }, 1); cb({ value: 'User login' }, 2); cb({ value: 'High' }, 3); } }, 2);
-      callback({ eachCell: (cb: Function) => { cb({ value: 'REQ-2' }, 1); cb({ value: 'User registration' }, 2); cb({ value: 'Medium' }, 3); } }, 3);
-    });
+    mockSheetToRowData.mockReturnValue([
+      ['ID', 'Description', 'Priority'],
+      ['REQ-1', 'User login', 'High'],
+      ['REQ-2', 'User registration', 'Medium'],
+    ]);
 
     const { readXlsxFile } = await import('../../../src/core/requirement-reader/xlsx-reader.js');
     const result = await readXlsxFile('/specs/requirements.xlsx');
@@ -53,10 +43,10 @@ describe('readXlsxFile — table extraction', () => {
   });
 
   it('should format each row as key-value pairs', async () => {
-    mockEachRow.mockImplementation((callback: Function) => {
-      callback({ eachCell: (cb: Function) => { cb({ value: 'Name' }, 1); cb({ value: 'Role' }, 2); } }, 1);
-      callback({ eachCell: (cb: Function) => { cb({ value: 'Login' }, 1); cb({ value: 'Admin' }, 2); } }, 2);
-    });
+    mockSheetToRowData.mockReturnValue([
+      ['Name', 'Role'],
+      ['Login', 'Admin'],
+    ]);
 
     const { readXlsxFile } = await import('../../../src/core/requirement-reader/xlsx-reader.js');
     const result = await readXlsxFile('/test.xlsx');
@@ -69,7 +59,7 @@ describe('readXlsxFile — table extraction', () => {
 
 describe('readXlsxFile — ID derivation', () => {
   it('should derive ID from filename', async () => {
-    mockEachRow.mockImplementation(() => {});
+    mockSheetToRowData.mockReturnValue([]);
 
     const { readXlsxFile } = await import('../../../src/core/requirement-reader/xlsx-reader.js');
     const result = await readXlsxFile('/docs/Patient Records.xlsx');
@@ -80,7 +70,9 @@ describe('readXlsxFile — ID derivation', () => {
 
 describe('readXlsxFile — error handling', () => {
   it('should throw when workbook has no sheets', async () => {
-    mockWorkbook.worksheets = [];
+    const { readFile } = await import('xlsx');
+    vi.mocked(readFile).mockReturnValueOnce({ SheetNames: [], Sheets: {} } as ReturnType<typeof readFile>);
+    mockSheetToRowData.mockReturnValue([]);
 
     const { readXlsxFile } = await import('../../../src/core/requirement-reader/xlsx-reader.js');
     await expect(readXlsxFile('/empty.xlsx')).rejects.toThrow('No sheets found');

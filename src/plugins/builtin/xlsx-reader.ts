@@ -4,7 +4,7 @@
  */
 
 import type { ReaderPlugin, StructuredRequirement } from '../../types/index.js';
-import ExcelJS from 'exceljs';
+import { readFile, utils } from 'xlsx';
 import { formatCellValue } from '../../infra/excel-utils.js';
 
 export class XlsxReader implements ReaderPlugin {
@@ -15,32 +15,32 @@ export class XlsxReader implements ReaderPlugin {
     return /\.xlsx$/i.test(source) || /\.xls$/i.test(source);
   }
 
-  async read(source: string): Promise<StructuredRequirement[]> {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(source);
+  read(source: string): Promise<StructuredRequirement[]> {
+    const workbook = readFile(source);
 
     const requirements: StructuredRequirement[] = [];
 
-    for (const sheet of workbook.worksheets) {
-      const sheetName = sheet.name;
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) continue;
+
+      // Convert sheet to array of arrays
+      const allRows = utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' });
+
+      if (allRows.length === 0) continue;
 
       // First row as headers
-      const headers: string[] = [];
-      const rows: Record<string, string>[] = [];
+      const headers: string[] = (allRows[0] as unknown[]).map(cell => formatCellValue(cell));
+      const dataRows = allRows.slice(1);
 
-      sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) {
-          row.eachCell((cell, colNumber) => {
-            headers[colNumber - 1] = formatCellValue(cell.value);
-          });
-        } else {
-          const obj: Record<string, string> = {};
-          row.eachCell((cell, colNumber) => {
-            const key = headers[colNumber - 1] ?? `Col${colNumber}`;
-            obj[key] = formatCellValue(cell.value);
-          });
-          rows.push(obj);
-        }
+      // Convert to objects
+      const rows: Record<string, string>[] = dataRows.map(row => {
+        const obj: Record<string, string> = {};
+        row.forEach((cell, colNumber) => {
+          const key = headers[colNumber] ?? `Col${colNumber + 1}`;
+          obj[key] = formatCellValue(cell);
+        });
+        return obj;
       });
 
       // Try to find columns: title/id, description, acceptance criteria
@@ -63,6 +63,6 @@ export class XlsxReader implements ReaderPlugin {
       }
     }
 
-    return requirements;
+    return Promise.resolve(requirements);
   }
 }

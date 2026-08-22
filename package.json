@@ -1,6 +1,6 @@
 {
   "name": "speclore",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "AI-powered CLI for BDD specs, coding constraints & acceptance testing. MCP-native.",
   "keywords": [
     "ai",
@@ -65,12 +65,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@cucumber/gherkin": "^30.0.0",
-    "@cucumber/messages": "^27.0.0",
+    "@cucumber/gherkin": "^42.0.1",
+    "@cucumber/messages": "^34.2.1",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "chokidar": "^4.0.3",
     "commander": "^13.1.0",
-    "exceljs": "^4.4.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "glob": "^13.0.6",
     "inquirer": "^12.5.0",
     "js-yaml": "^4.1.0",
