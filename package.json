@@ -50,7 +50,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup && node -e \"require('fs').cpSync('src/cli/templates','dist/cli/templates',{recursive:true})\"",
+    "build": "node -e \"const p=require('path');const{execSync}=require('child_process');try{if(process.platform==='win32'){execSync('cmd /c rd /s /q dist',{stdio:'ignore'})}else{execSync('rm -rf dist',{stdio:'ignore'})}}catch(e){}\" && tsup && node -e \"require('fs').cpSync('src/cli/templates','dist/cli/templates',{recursive:true})\"",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
