@@ -15,7 +15,7 @@ import { glob, globSync } from 'glob';
  * SpecLore stores all paths internally as POSIX for consistency.
  */
 export function toPosixPath(p: string): string {
-  return p.split(sep).join(posix.sep);
+  return p.split(/[/\\]/).join(posix.sep);
 }
 
 /**
