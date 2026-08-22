@@ -10,6 +10,7 @@ import type { Command } from 'commander';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { logger } from '../../infra/logger.js';
+import { generateDefaultConfigYaml } from '../../infra/config.js';
 import { detectAITools } from '../../setup/detector.js';
 import { writeMcpConfig } from '../../setup/config-writer.js';
 import { writeRuleFiles } from '../../setup/rule-writer.js';
@@ -46,8 +47,8 @@ export function registerSetupCommand(program: Command): void {
       // 3. Generate default config if not exists
       const configPath = join(specLoreDir, 'config.yaml');
       if (!existsSync(configPath)) {
-        const defaultConfig = generateDefaultConfig(projectRoot);
-        writeFileSync(configPath, defaultConfig, 'utf-8');
+        const projectName = projectRoot.split(/[/\\]/).pop() ?? 'my-project';
+        writeFileSync(configPath, generateDefaultConfigYaml(projectName), 'utf-8');
         logger.info(`Created config: ${configPath}`);
       }
 
@@ -64,42 +65,4 @@ export function registerSetupCommand(program: Command): void {
     });
 }
 
-function generateDefaultConfig(projectRoot: string): string {
-  const projectName = projectRoot.split(/[/\\]/).pop() ?? 'my-project';
-  return `# SpecLore Configuration
-# See: https://github.com/speclore/speclore#configuration
 
-project:
-  name: ${projectName}
-  language: typescript
-  framework: ""
-  profile: normal
-  modules: {}
-    # Example:
-    # order:
-    #   path: src/order
-    #   responsibility: Order management and processing
-    #   dependsOn: [inventory, payment]
-
-ai:
-  provider: openai-compatible
-  # baseUrl: https://api.openai.com/v1
-  # model: gpt-4
-
-spec:
-  outputDir: specs
-  defaultLanguage: zh-CN
-  confidenceThreshold: 0.6
-
-verify:
-  command: ""
-  timeout: 300
-  reportFormat:
-    - json
-    - html
-  mapping:
-    patterns:
-      - feature: "specs/{module}/{name}.feature"
-        test: "tests/{module}/{name}.test.*"
-`;
-}

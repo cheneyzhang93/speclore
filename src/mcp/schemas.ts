@@ -27,3 +27,8 @@ export const verifyInputSchema = z.object({
   features: z.array(z.string()).optional().describe('Feature file paths or glob patterns to verify (optional, all if omitted).'),
   impact: z.boolean().optional().default(false).describe('Enable change impact analysis (compares git diff to find affected features).'),
 });
+
+/** Input schema for speclore.status tool */
+export const statusInputSchema = z.object({
+  feature: z.string().optional().describe('Specific feature file to check (optional, all if omitted).'),
+});

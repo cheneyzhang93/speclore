@@ -4,7 +4,7 @@
  * @module core/constraint-coder
  */
 
-import type { FeatureFile, ModuleRule, ConstraintContent, SpecLoreConfig, ContextFile } from '../../types/index.js';
+import type { FeatureFile, ModuleRule, ConstraintContent, SpecLoreConfig, ContextFile, FeatureRule } from '../../types/index.js';
 import { detectAITools } from './ai-tool-detector.js';
 import { writeConstraints } from './constraint-writer.js';
 import { readModuleConfig } from '../context-engine/config-reader.js';
@@ -40,6 +40,20 @@ export async function generateConstraints(
     forbiddenPatterns: [],
   }));
 
+  // Extract feature business rules from scenarios
+  const featureRules: FeatureRule[] = features.map(f => ({
+    featureName: f.featureName,
+    sourceFile: f.path.replace(/\\/g, '/'),
+    scenarios: f.scenarios.map(sc => ({
+      name: sc.name,
+      summary: [
+        ...sc.givens.map(g => `Given ${g.text}`),
+        ...sc.whens.map(w => `When ${w.text}`),
+        ...sc.thens.map(t => `Then ${t.text}`),
+      ].join(' → '),
+    })),
+  }));
+
   const content: ConstraintContent = {
     projectName: config.project.name,
     projectRoot,
@@ -47,6 +61,7 @@ export async function generateConstraints(
     features,
     profile: config.project.profile,
     mappingInstructions: MAPPING_INSTRUCTIONS,
+    featureRules,
   };
 
   // Try PluginRegistry first — supports third-party writer plugins

@@ -12,6 +12,7 @@ import { loadConfig } from '../../infra/config.js';
 import { logger } from '../../infra/logger.js';
 import { detectAITools } from '../../setup/detector.js';
 import { getCostTracker } from '../../ai/cost-tracker.js';
+import { StateManager } from '../../core/state-manager/index.js';
 
 export function registerStatusCommand(program: Command): void {
   program
@@ -75,6 +76,58 @@ export function registerStatusCommand(program: Command): void {
         }
       } else {
         console.log('○ AI Usage: no calls in this session.');
+      }
+
+      // Workflow state
+      console.log('');
+      console.log('Workflow State');
+      console.log('──────────────');
+      const stateManager = new StateManager(projectRoot);
+      stateManager.ensureInitialized();
+
+      // Auto-migrate existing .feature files
+      const specsDirForMigration = join(projectRoot, config.spec.outputDir);
+      const migrated = stateManager.migrateFeatures(specsDirForMigration);
+      if (migrated > 0) {
+        console.log(`⬆ Migrated ${migrated} existing .feature file(s) into state tracking.`);
+        console.log('');
+      }
+
+      const featureEntries = stateManager.listFeatures();
+      if (featureEntries.length === 0) {
+        console.log('○ No features tracked yet. Run `speclore spec` to create feature files.');
+      } else {
+        for (const { path, state: entry } of featureEntries) {
+          const icon = entry.state === 'verified' ? '✓' : entry.state === 'coding' ? '◐' : entry.state === 'constrained' ? '◑' : '○';
+          console.log(`${icon} ${path} → ${entry.state}`);
+        }
+        const summary = stateManager.getProjectSummary();
+        console.log('');
+        console.log(`  Total: ${summary.featureCount} | specified: ${summary.states.specified} | constrained: ${summary.states.constrained} | coding: ${summary.states.coding} | verified: ${summary.states.verified}`);
+      }
+
+      // Recommended actions
+      const testCommand = config.verify.command;
+      if (featureEntries.length === 0) {
+        console.log('');
+        console.log('Next step: speclore spec <requirement>');
+      } else {
+        const hasSpecified = featureEntries.some(e => e.state.state === 'specified');
+        const hasConstrained = featureEntries.some(e => e.state.state === 'constrained');
+        const hasCoding = featureEntries.some(e => e.state.state === 'coding');
+        if (hasSpecified) {
+          console.log('Next step: speclore code — generate constraints and test scaffolding');
+        } else if (hasConstrained) {
+          console.log('Next step: Fill in test scaffolding, then start coding');
+        } else if (hasCoding) {
+          if (!testCommand) {
+            console.log('Next step: Configure verify.command in .speclore/config.yaml, then: speclore verify');
+          } else {
+            console.log('Next step: speclore verify — run acceptance tests');
+          }
+        } else {
+          console.log('All features verified. Add new requirements with: speclore spec');
+        }
       }
 
       console.log('');

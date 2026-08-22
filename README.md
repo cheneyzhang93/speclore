@@ -18,6 +18,7 @@
 - [为什么需要 SpecLore](#为什么需要-speclore)
 - [核心特性](#核心特性)
 - [快速开始](#快速开始)
+- [工作流](#工作流)
 - [使用手册](#使用手册)
 - [配置说明](#配置说明)
 - [测试映射](#测试映射)
@@ -50,7 +51,9 @@ SpecLore 用一条自动化流水线解决这三个问题：
 - **需求结构化** — 任意格式输入（Markdown / Word / Excel / PDF / 图片 / URL / 直接文本）→ BDD .feature 验收标准
 - **验收自动化** — 运行测试 → 结果自动映射回 .feature 场景 → 生成验收报告（JSON + HTML）
 - **AI 约束化** — 自动为 Cursor / Claude Code / Qoder 生成编码约束（模块边界、命名规范、禁止模式）
-- **MCP 原生集成** — AI 客户端直接调用 3 个 MCP 工具，用户全程自然语言交互
+- **工作流引擎** — 有状态流水线：需求 → 约束 → 编码 → 验收，每步强约束，乱序自动报错
+- **测试骨架生成** — 从 feature 场景自动生成 `it.skip` 测试文件，支持 vitest / jest / mocha
+- **MCP 原生集成** — AI 客户端直接调用 4 个 MCP 工具（status / spec / code / verify），用户全程自然语言交互
 - **插件系统** — 自定义 Reader / Writer / Parser 扩展
 - **变更影响分析** — 基于 git diff 自动推断受影响的 feature 和模块
 
@@ -58,34 +61,38 @@ SpecLore 用一条自动化流水线解决这三个问题：
 
 ## 快速开始
 
-### 安装方式一：npm 全局安装
+### Step 1 — 安装
+
+**npm 全局安装（推荐）**
 
 ```bash
-# 1. 全局安装
 npm install -g speclore
-
-# 2. 进入你的项目目录
-cd your-project
-
-# 3. 运行 setup（自动检测 AI 工具、配置 MCP、生成规则文件）
-speclore setup
-
-# 4. 初始化项目上下文
-speclore init
 ```
 
-### 安装方式二：git clone
+**git clone（本地开发）**
 
 ```bash
 git clone https://github.com/cheneyzhang93/speclore.git
-cd speclore
-pnpm install
-pnpm build
+cd speclore && pnpm install && pnpm build
 ```
 
-在你的项目中配置 MCP（手动指向本地路径），在 `.cursor/mcp.json` 或 `.mcp.json` 中添加：
+### Step 2 — 项目初始化
+
+```bash
+cd your-project
+speclore setup
+```
+
+`setup` 会自动检测项目中的 AI 工具（Cursor / Qoder / Claude Code），创建 `.speclore/config.yaml`，写入 MCP 配置，并生成规则文件。
+
+### Step 3 — 配置 MCP
+
+**npm 全局安装**：`setup` 已自动写入 MCP 配置，无需手动操作。
+
+**git clone 本地开发**：在 AI 客户端的 MCP 配置文件中手动添加：
 
 ```json
+// .cursor/mcp.json 或 .qoder/mcp.json
 {
   "mcpServers": {
     "speclore": {
@@ -96,28 +103,139 @@ pnpm build
 }
 ```
 
-### 30 秒上手
+### Step 4 — 配置测试命令
 
-**Step 1 — Setup（一次性）**
+验收前需编辑 `.speclore/config.yaml`，设置测试命令和映射规则：
 
-```bash
-speclore setup
+```yaml
+verify:
+  command: "pnpm test"           # 你的测试命令
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.test.*"
 ```
 
-**Step 2 — 跟 AI 说话**（在 Cursor / Claude Code / Qoder 中）
+### Step 5 — 开始工作流
 
-> "帮我把这个需求生成 feature 文件：用户注册需要邮箱验证"
-> → AI 自动调用 `speclore.spec` 工具
+现在可以通过 AI 客户端或 CLI 开始使用了。完整工作流见下方[工作流章节](#工作流)。
 
-**Step 3 — 生成约束**
+---
 
-> "生成编码约束"
-> → AI 自动调用 `speclore.code` 工具
+## 工作流
 
-**Step 4 — 验收**
+SpecLore 的工作流是一个有状态的流水线：**需求 → 约束 → 编码 → 验收**。
+每个步骤由一个 MCP 工具驱动，工具之间通过项目状态文件（`.speclore/state.yaml`）串联。
 
-> "运行验收测试"
-> → AI 自动调用 `speclore.verify` 工具
+### 工作流全景
+
+| 步骤 | MCP 工具 | 输入 | 输出 | 状态变化 |
+|------|---------|------|------|----------|
+| 1. 查看状态 | `speclore.status` | — | 项目状态 + 推荐操作 | — |
+| 2. 生成需求 | `speclore.spec` | 需求文本 | .feature 文件 | → specified |
+| 3. 生成约束 | `speclore.code` | .feature 文件 | 约束规则 + 测试骨架 | → constrained |
+| 4. 编码实现 | AI 客户端 | 约束规则（自动加载） | 业务代码 + 测试代码 | coding |
+| 5. 运行验收 | `speclore.verify` | .feature 文件 | 验收报告 | → verified |
+
+### 完整示例
+
+以下以「患者注册功能」为例，演示完整工作流。
+
+**Step 1 — 查看项目状态**
+
+对 AI 说：
+
+> "查看 SpecLore 项目状态"
+
+AI 调用 `speclore.status`，返回：
+
+```json
+{
+  "project": { "initialized": true, "testCommand": "pnpm test", "aiToolsDetected": ["qoder"] },
+  "features": [],
+  "summary": { "total": 0 },
+  "recommendedActions": ["Call speclore.spec with your requirement to create feature files"]
+}
+```
+
+**Step 2 — 生成需求**
+
+> "帮我把这个需求生成 feature 文件：患者注册需要手机号验证，支持微信一键登录"
+
+AI 调用 `speclore.spec`，返回：
+
+```json
+{
+  "createdFiles": ["specs/patient/register.feature"],
+  "scenarios": [
+    { "feature": "患者注册", "name": "手机号注册成功", "given": [...], "when": [...], "then": [...] },
+    { "feature": "患者注册", "name": "手机号格式错误", "given": [...], "when": [...], "then": [...] }
+  ],
+  "workflow": {
+    "feature": "specs/patient/register.feature",
+    "currentState": "specified",
+    "nextStep": "Call speclore.code to generate constraints and test scaffolding."
+  }
+}
+```
+
+生成了 `specs/patient/register.feature`，状态变为 `specified`。
+
+**Step 3 — 生成约束 + 测试骨架**
+
+AI 自动调用 `speclore.code`，返回：
+
+```json
+{
+  "writtenFiles": [".qoder/rules/speclore.md"],
+  "scaffoldFiles": [
+    { "testFile": "tests/patient/register.test.ts", "framework": "vitest", "scenarios": 3 }
+  ],
+  "workflow": {
+    "feature": "specs/patient/register.feature",
+    "currentState": "constrained",
+    "nextStep": "Start coding. Constraints and test scaffolding are ready. Fill in test implementations."
+  }
+}
+```
+
+新增了：
+- `.qoder/rules/speclore.md` — 包含模块边界 + feature 业务规则的编码约束
+- `tests/patient/register.test.ts` — 测试骨架文件（`it.skip` 占位）
+
+**Step 4 — 编码实现**
+
+AI 编码时自动读取约束规则（`.qoder/rules/speclore.md`），了解模块边界和业务规则。用户填充测试骨架中的 `it.skip` 为真实测试实现。
+
+**Step 5 — 运行验收**
+
+> "运行验收"
+
+AI 调用 `speclore.verify`，返回：
+
+```json
+{
+  "summary": "3/3 scenarios passed (100%)",
+  "passed": 3,
+  "failed": 0,
+  "unmapped": 0,
+  "workflow": {
+    "feature": "specs/patient/register.feature",
+    "currentState": "verified",
+    "nextStep": "All features verified. Add new requirements with speclore.spec."
+  }
+}
+```
+
+### 流程强约束
+
+乱序调用会返回明确错误和正确指引：
+
+| 场景 | 结果 |
+|------|------|
+| 调 `speclore.code` 但没有 .feature 文件 | 返回错误："No .feature files found. Run speclore.spec first." |
+| 调 `speclore.verify` 但没有测试骨架 | 返回错误："No test scaffolding. Run speclore.code first." |
+| 调任何工具但项目未初始化 | 自动创建 `.speclore/config.yaml` 并提示配置 |
 
 ---
 
@@ -161,7 +279,7 @@ speclore init
 
 #### `speclore status`
 
-显示项目诊断状态：配置、上下文、feature 文件、AI 工具检测结果。
+显示项目诊断状态：配置、上下文、feature 文件、AI 工具检测、工作流状态和推荐操作。
 
 ```bash
 speclore status
@@ -351,6 +469,35 @@ export class ConfluenceReader implements ReaderPlugin {
 
 ## MCP 工具参考
 
+SpecLore 提供 4 个 MCP 工具，按工作流顺序使用：
+
+> `speclore.status` → `speclore.spec` → `speclore.code` → `speclore.verify`
+
+每个工具返回的 `workflow` 字段包含当前状态和推荐下一步操作。
+
+### `speclore.status`
+
+查看项目工作流状态、feature 状态分布和推荐操作。
+
+**输入**:
+```json
+{
+  "feature": "specs/auth/register.feature"  // 可选，不填则返回全部
+}
+```
+
+**输出**:
+```json
+{
+  "project": { "initialized": true, "configCreated": false, "testCommand": "pnpm test", "aiToolsDetected": ["qoder"] },
+  "features": [
+    { "file": "specs/auth/register.feature", "state": "constrained", "scenarios": 3, "constraintFiles": [".qoder/rules/speclore.md"], "testFiles": ["tests/auth/register.test.ts"] }
+  ],
+  "summary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 },
+  "recommendedActions": ["Fill in test scaffolding implementations, then start coding."]
+}
+```
+
 ### `speclore.spec`
 
 需求 → .feature 文件。
@@ -377,7 +524,13 @@ export class ConfluenceReader implements ReaderPlugin {
     }
   ],
   "constraints": "已生成 1 个 feature 文件，共 3 个场景。",
-  "nextSteps": "运行 `speclore code` 生成 AI 编码约束。"
+  "nextSteps": "运行 `speclore code` 生成 AI 编码约束。",
+  "workflow": {
+    "feature": "specs/auth/register.feature",
+    "currentState": "specified",
+    "nextStep": "Call speclore.code to generate constraints and test scaffolding.",
+    "projectSummary": { "total": 1, "specified": 1, "constrained": 0, "coding": 0, "verified": 0 }
+  }
 }
 ```
 
@@ -400,7 +553,16 @@ export class ConfluenceReader implements ReaderPlugin {
   "constraintContent": "2 个模块的约束内容...",
   "moduleRules": [...],
   "activeConstraints": [...],
-  "codingGuidance": "项目: my-app. 语言: TypeScript..."
+  "codingGuidance": "项目: my-app. 语言: TypeScript...",
+  "scaffoldFiles": [
+    { "testFile": "tests/auth/register.test.ts", "framework": "vitest", "scenarios": 3 }
+  ],
+  "workflow": {
+    "feature": "specs/auth/register.feature",
+    "currentState": "constrained",
+    "nextStep": "Start coding. Constraints and test scaffolding are ready.",
+    "projectSummary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 }
+  }
 }
 ```
 
@@ -424,7 +586,13 @@ export class ConfluenceReader implements ReaderPlugin {
   "failed": 0,
   "unmapped": 0,
   "details": [...],
-  "failedDetails": []
+  "failedDetails": [],
+  "workflow": {
+    "feature": "specs/auth/register.feature",
+    "currentState": "verified",
+    "nextStep": "All features verified. Add new requirements with speclore.spec.",
+    "projectSummary": { "total": 1, "specified": 0, "constrained": 0, "coding": 0, "verified": 1 }
+  }
 }
 ```
 

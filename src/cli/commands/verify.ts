@@ -13,6 +13,7 @@ import { logger } from '../../infra/logger.js';
 import { runVerification } from '../../core/verifier/index.js';
 import { buildContext, loadContext } from '../../core/context-engine/index.js';
 import { analyzeImpact } from '../../core/analyzer/index.js';
+import { StateManager } from '../../core/state-manager/index.js';
 import type { FeatureFile, ContextFile } from '../../types/index.js';
 import type { SpecLoreConfig } from '../../types/config.js';
 
@@ -46,6 +47,21 @@ export function registerVerifyCommand(program: Command): void {
 
       // Resolve feature files
       const featureFiles = resolveFeatures(features, projectRoot, config);
+
+      // State guard: check features have test scaffolding
+      const stateManager = new StateManager(projectRoot);
+
+      // Auto-migrate existing .feature files that aren't tracked yet
+      const specsDir = join(projectRoot, config.spec.outputDir);
+      stateManager.migrateFeatures(specsDir);
+
+      for (const feature of featureFiles) {
+        const entry = stateManager.getFeatureState(feature.path);
+        if (!entry || entry.state === 'specified') {
+          logger.error(`Feature "${feature.path}" has no test scaffolding. Run \`speclore code\` first.`);
+          return;
+        }
+      }
 
       if (opts.watch) {
         await runWatchMode(projectRoot, featureFiles, context, config, Number(opts.timeout));

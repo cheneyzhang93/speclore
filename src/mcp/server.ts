@@ -3,10 +3,11 @@
  *
  * Lifecycle: initialize → tools/list → tools/call → shutdown → exit
  *
- * Exposes 3 tools:
+ * Exposes 4 tools:
  *   - speclore.spec   — requirement → .feature (M1 → M2)
  *   - speclore.code   — .feature → AI constraint files (M3 + M7)
  *   - speclore.verify — tests → acceptance report (M4 + M7)
+ *   - speclore.status — project workflow status + recommended actions
  *
  * @module mcp/server
  */
@@ -15,8 +16,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { acquireLock, releaseLock } from '../infra/file-lock.js';
 import { logger } from '../infra/logger.js';
-import { executeSpecTool, executeCodeTool, executeVerifyTool, SPEC_TOOL_DESC, CODE_TOOL_DESC, VERIFY_TOOL_DESC } from './tools.js';
-import { specInputSchema, codeInputSchema, verifyInputSchema } from './schemas.js';
+import { executeSpecTool, executeCodeTool, executeVerifyTool, SPEC_TOOL_DESC, CODE_TOOL_DESC, VERIFY_TOOL_DESC, STATUS_TOOL_DESC } from './tools.js';
+import { executeStatusTool } from './status.js';
+import { specInputSchema, codeInputSchema, verifyInputSchema, statusInputSchema } from './schemas.js';
 import { VERSION } from '../version.js';
 import { mkdirSync } from 'node:fs';
 
@@ -78,6 +80,21 @@ server.registerTool(
   async (args) => {
     const result = await executeVerifyTool(
       { features: args.features, impact: args.impact },
+      getProjectRoot(),
+    );
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.registerTool(
+  'speclore.status',
+  {
+    description: STATUS_TOOL_DESC,
+    inputSchema: statusInputSchema.shape,
+  },
+  async (args) => {
+    const result = executeStatusTool(
+      { feature: args.feature },
       getProjectRoot(),
     );
     return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };

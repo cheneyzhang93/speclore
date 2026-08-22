@@ -186,3 +186,43 @@ export class ConfigError extends Error {
     this.name = 'ConfigError';
   }
 }
+
+/** Generate default config.yaml content for a project */
+export function generateDefaultConfigYaml(projectName: string): string {
+  return `# SpecLore Configuration
+# See: https://github.com/cheneyzhang93/speclore#configuration
+
+project:
+  name: ${projectName}
+  language: typescript
+  framework: ""
+  profile: normal
+  modules: {}
+    # Example:
+    # order:
+    #   path: src/order
+    #   responsibility: Order management and processing
+    #   dependsOn: [inventory, payment]
+
+ai:
+  provider: openai-compatible
+  # baseUrl: https://api.openai.com/v1
+  # model: gpt-4
+
+spec:
+  outputDir: specs
+  defaultLanguage: zh-CN
+  confidenceThreshold: 0.6
+
+verify:
+  command: ""
+  timeout: 300
+  reportFormat:
+    - json
+    - html
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.test.*"
+`;
+}

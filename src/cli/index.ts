@@ -12,6 +12,7 @@
  *   speclore verify        — run tests → acceptance report
  *   speclore mcp           — start MCP server (stdio)
  *   speclore teardown      — uninstall cleanup
+ *   speclore migrate       — register existing .feature files into workflow state
  */
 
 import { Command } from 'commander';
@@ -22,6 +23,7 @@ import { registerSpecCommand } from './commands/spec.js';
 import { registerCodeCommand } from './commands/code.js';
 import { registerVerifyCommand } from './commands/verify.js';
 import { registerTeardownCommand } from './commands/teardown.js';
+import { registerMigrateCommand } from './commands/migrate.js';
 import { VERSION } from '../version.js';
 
 export function createProgram(): Command {
@@ -42,6 +44,7 @@ export function createProgram(): Command {
   registerCodeCommand(program);
   registerVerifyCommand(program);
   registerTeardownCommand(program);
+  registerMigrateCommand(program);
 
   // MCP server sub-command
   program

@@ -14,6 +14,7 @@ coverage/
 # ===== Runtime Artifacts =====
 .speclore/.lock
 .speclore/context.json
+.speclore/state.yaml
 .speclore/reports/
 .speclore/.git-head
 .speclore/mappings/
@@ -28,11 +29,13 @@ coverage/
 # ===== IDE & OS =====
 .vscode/
 .idea/
+.qoder-cn/
 *.swp
 *.swo
 *~
 .DS_Store
 Thumbs.db
+%SystemDrive%/
 
 # ===== Logs =====
 *.log

@@ -265,6 +265,7 @@ export interface SpecResult {
   scenarios: ScenarioSummary[];
   constraints: string;
   nextSteps: string;
+  workflow: WorkflowInfo;
 }
 
 export interface ScenarioSummary {
@@ -285,6 +286,10 @@ export interface ConstraintResult {
   activeConstraints: ActiveConstraint[];
   /** Comprehensive coding guidance for AI (≤ 2000 chars) */
   codingGuidance: string;
+
+  // Test scaffolding
+  scaffoldFiles: ScaffoldResult[];
+  workflow: WorkflowInfo;
 }
 
 export interface ActiveConstraint {
@@ -305,6 +310,7 @@ export interface VerifyMcpResult {
   unmapped: number;
   details: FeatureResult[];
   failedDetails: FailedDetail[];
+  workflow: WorkflowInfo;
 }
 
 // ============================================================================
@@ -338,6 +344,10 @@ export interface ConstraintContent {
   profile: ProfileLevel;
   /** Mapping rule instructions for AI */
   mappingInstructions: string;
+  /** Feature business rules extracted from scenarios */
+  featureRules: FeatureRule[];
+  /** Test scaffolding info (optional) */
+  scaffoldInfo?: ScaffoldResult[];
 }
 
 /** Test result parser plugin interface */
@@ -372,6 +382,97 @@ export interface InstallInfo {
   version: string;
   /** Local path for clone mode */
   localPath?: string;
+}
+
+// ============================================================================
+// State Manager Domain (Workflow Engine)
+// ============================================================================
+
+/** Feature lifecycle state */
+export type FeatureState = 'specified' | 'constrained' | 'coding' | 'verified';
+
+/** Project-wide state persisted to .speclore/state.yaml */
+export interface ProjectState {
+  schemaVersion: 1;
+  initialized: boolean;
+  initializedAt?: string;
+  features: Record<string, FeatureStateEntry>;
+}
+
+/** Per-feature state tracking */
+export interface FeatureStateEntry {
+  featureFile: string;
+  state: FeatureState;
+  constraintFiles: string[];
+  testFiles: string[];
+  lastStateChange: string;
+  lastVerify?: {
+    timestamp: string;
+    passed: number;
+    failed: number;
+    unmapped: number;
+  };
+}
+
+// ============================================================================
+// Workflow Domain (MCP response enrichment)
+// ============================================================================
+
+/** Workflow info appended to every MCP tool response */
+export interface WorkflowInfo {
+  feature?: string;
+  currentState: FeatureState | 'uninitialized';
+  nextStep: string;
+  projectSummary: {
+    total: number;
+    specified: number;
+    constrained: number;
+    coding: number;
+    verified: number;
+  };
+}
+
+/** speclore.status MCP response */
+export interface StatusResult {
+  project: {
+    initialized: boolean;
+    configCreated: boolean;
+    testCommand: string;
+    aiToolsDetected: string[];
+  };
+  features: Array<{
+    file: string;
+    state: FeatureState;
+    scenarios: number;
+    constraintFiles: string[];
+    testFiles: string[];
+    lastVerify?: { passed: number; failed: number; timestamp: string };
+  }>;
+  summary: {
+    total: number;
+    specified: number;
+    constrained: number;
+    coding: number;
+    verified: number;
+  };
+  recommendedActions: string[];
+}
+
+/** Test scaffolding generation result */
+export interface ScaffoldResult {
+  testFile: string;
+  framework: string;
+  scenarios: number;
+}
+
+/** Feature business rule extracted from scenarios */
+export interface FeatureRule {
+  featureName: string;
+  sourceFile: string;
+  scenarios: Array<{
+    name: string;
+    summary: string;
+  }>;
 }
 
 // ============================================================================

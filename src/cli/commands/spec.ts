@@ -11,6 +11,7 @@ import { logger } from '../../infra/logger.js';
 import { readRequirement } from '../../core/requirement-reader/index.js';
 import { generateFeature } from '../../core/feature-generator/index.js';
 import { buildContext, loadContext } from '../../core/context-engine/index.js';
+import { StateManager } from '../../core/state-manager/index.js';
 
 export function registerSpecCommand(program: Command): void {
   program
@@ -35,5 +36,16 @@ export function registerSpecCommand(program: Command): void {
       if (features.needsReview.length > 0) {
         logger.warn(`  Needs review: ${features.needsReview.join(', ')}`);
       }
+
+      // Update workflow state
+      const stateManager = new StateManager(projectRoot);
+      try {
+        stateManager.transitionFeature(features.path, 'specified');
+      } catch {
+        // Feature may already be in specified state (e.g., re-running spec)
+      }
+      console.log('');
+      console.log(`Workflow: ${features.path} → specified`);
+      console.log('Next step: speclore code — generate constraints and test scaffolding');
     });
 }

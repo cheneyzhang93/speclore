@@ -222,3 +222,30 @@ describe('teardown command behavior', () => {
     expect(mocks.runTeardown).toHaveBeenCalledWith(expect.any(String), true);
   });
 });
+
+// ---- migrate command ----
+
+describe('migrate command behavior', () => {
+  it('should print migration header when executing', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = createProgram();
+    await program.parseAsync(['node', 'speclore', 'migrate']);
+
+    // Even without config, the command prints its header
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should set logger to debug on --verbose', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = createProgram();
+    await program.parseAsync(['node', 'speclore', 'migrate', '--verbose']);
+
+    expect(mocks.setLevel).toHaveBeenCalledWith('debug');
+
+    consoleSpy.mockRestore();
+  });
+});

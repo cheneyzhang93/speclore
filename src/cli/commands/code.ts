@@ -11,7 +11,9 @@ import { globSync } from 'glob';
 import { loadConfig } from '../../infra/config.js';
 import { logger } from '../../infra/logger.js';
 import { generateConstraints } from '../../core/constraint-coder/index.js';
+import { generateTestScaffolding } from '../../core/test-scaffolder/index.js';
 import { buildContext, loadContext } from '../../core/context-engine/index.js';
+import { StateManager } from '../../core/state-manager/index.js';
 import type { FeatureFile, SpecLoreConfig } from '../../types/index.js';
 
 export function registerCodeCommand(program: Command): void {
@@ -41,7 +43,42 @@ export function registerCodeCommand(program: Command): void {
       for (const f of writtenFiles) {
         logger.info(`Written: ${f}`);
       }
-      logger.info(`Done. ${writtenFiles.length} constraint file(s) generated.`);
+
+      // Generate test scaffolding
+      const scaffoldResults = generateTestScaffolding(projectRoot, featureFiles, config);
+      if (scaffoldResults.length > 0) {
+        console.log('');
+        console.log('Test Scaffolding Generated:');
+        for (const s of scaffoldResults) {
+          logger.info(`  ${s.testFile} (${s.scenarios} scenarios, ${s.framework})`);
+        }
+      }
+
+      // Update workflow state
+      const stateManager = new StateManager(projectRoot);
+
+      // Auto-migrate existing .feature files that aren't tracked yet
+      const specsDir = join(projectRoot, config.spec.outputDir);
+      const migrated = stateManager.migrateFeatures(specsDir);
+      if (migrated > 0) {
+        console.log(`Migrated ${migrated} existing .feature file(s) into state tracking.`);
+      }
+
+      for (const feature of featureFiles) {
+        try {
+          stateManager.transitionFeature(feature.path, 'constrained', ['specified']);
+          stateManager.updateFeatureEntry(feature.path, {
+            constraintFiles: writtenFiles,
+            testFiles: scaffoldResults.map(s => s.testFile),
+          });
+        } catch {
+          // May already be constrained
+        }
+      }
+
+      console.log('');
+      console.log(`Done. ${writtenFiles.length} constraint file(s), ${scaffoldResults.length} test scaffold(s) generated.`);
+      console.log('Next step: Fill in test implementations, then start coding.');
     });
 }
 
