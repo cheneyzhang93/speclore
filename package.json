@@ -1,22 +1,31 @@
 {
   "name": "speclore",
   "version": "0.1.0",
-  "description": "AI-powered product-engineering collaboration CLI tool. Turn requirements into BDD specs, auto-generate AI coding constraints, and verify acceptance criteria.",
+  "description": "AI-powered CLI for BDD specs, coding constraints & acceptance testing. MCP-native.",
   "keywords": [
     "ai",
+    "ai-coding",
     "bdd",
-    "cucumber",
     "gherkin",
+    "cucumber",
     "mcp",
+    "mcp-server",
     "cursor",
-    "claude",
+    "claude-code",
+    "qoder",
     "specification",
     "acceptance-testing",
-    "requirement-management"
+    "test-automation",
+    "requirement-management",
+    "ai-constraints"
   ],
-  "homepage": "https://github.com/nicepkg/speclore#readme",
+  "homepage": "https://github.com/cheneyzhang93/speclore#readme",
   "bugs": {
-    "url": "https://github.com/nicepkg/speclore/issues"
+    "url": "https://github.com/cheneyzhang93/speclore/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cheneyzhang93/speclore.git"
   },
   "license": "MIT",
   "author": "Cheney",
@@ -51,7 +60,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "prepublishOnly": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build",
     "postuninstall": "node scripts/cleanup-global.cjs"
   },
   "dependencies": {

@@ -1,10 +1,31 @@
 # SpecLore
 
 > AI 产研协同 CLI 工具 — 在 AI 编码时代实现「需求结构化 → 验收自动化 → AI 约束化」
+>
+> AI-powered CLI for BDD specification, AI coding constraints & automated acceptance testing. MCP-native integration with Cursor, Claude Code & Qoder.
+
+[English](README.en.md) | **中文**
 
 [![npm version](https://img.shields.io/npm/v/speclore.svg)](https://www.npmjs.com/package/speclore)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml/badge.svg)](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml)
+
+---
+
+## 目录
+
+- [为什么需要 SpecLore](#为什么需要-speclore)
+- [核心特性](#核心特性)
+- [快速开始](#快速开始)
+- [使用手册](#使用手册)
+- [配置说明](#配置说明)
+- [测试映射](#测试映射)
+- [插件开发](#插件开发)
+- [MCP 工具参考](#mcp-工具参考)
+- [支持的 AI 客户端](#支持的-ai-客户端)
+- [技术架构](#技术架构)
+- [开发](#开发)
 
 ---
 
@@ -207,7 +228,7 @@ project:
   modules:
     order:
       path: src/order
-      responsibility: Order management and processing
+      responsibility: 订单管理与处理
       dependsOn: [inventory, payment]
       entities: [Order, OrderItem]
       apis: [createOrder, getOrder]
@@ -355,8 +376,8 @@ export class ConfluenceReader implements ReaderPlugin {
       "then": ["系统创建账户并发送验证邮件"]
     }
   ],
-  "constraints": "Generated 1 feature file(s) with 3 scenario(s).",
-  "nextSteps": "Run `speclore code` to generate AI coding constraints."
+  "constraints": "已生成 1 个 feature 文件，共 3 个场景。",
+  "nextSteps": "运行 `speclore code` 生成 AI 编码约束。"
 }
 ```
 
@@ -376,10 +397,10 @@ export class ConfluenceReader implements ReaderPlugin {
 ```json
 {
   "writtenFiles": [".cursor/rules/speclore.mdc", ".claude/rules/speclore.md"],
-  "constraintContent": "Constraints for 2 module(s)...",
+  "constraintContent": "2 个模块的约束内容...",
   "moduleRules": [...],
   "activeConstraints": [...],
-  "codingGuidance": "Project: my-app. Language: TypeScript..."
+  "codingGuidance": "项目: my-app. 语言: TypeScript..."
 }
 ```
 
