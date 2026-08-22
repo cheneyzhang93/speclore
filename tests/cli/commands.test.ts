@@ -4,12 +4,19 @@
 
 import { describe, it, expect } from 'vitest';
 import { createProgram } from '../../src/cli/index.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
 
 describe('CLI — program metadata', () => {
   it('should create a program with all commands', () => {
     const program = createProgram();
     expect(program.name()).toBe('speclore');
-    expect(program.version()).toBe('0.1.0');
+    expect(program.version()).toBe(pkg.version);
 
     const commandNames = program.commands.map(c => c.name());
     expect(commandNames).toContain('setup');
