@@ -1,0 +1,14 @@
+{
+  "feature": "specs/auth/login.feature",
+  "generatedAt": "2024-01-15T10:30:00Z",
+  "scenarios": {
+    "有效凭据登录成功": {
+      "testFile": "tests/auth/login.test.ts",
+      "testMethod": "should login with valid credentials"
+    },
+    "密码错误时拒绝登录": {
+      "testFile": "tests/auth/login.test.ts",
+      "testMethod": "should reject invalid password"
+    }
+  }
+}

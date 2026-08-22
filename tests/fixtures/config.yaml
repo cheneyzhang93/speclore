@@ -1,0 +1,38 @@
+project:
+  name: test-project
+  language: typescript
+  framework: express
+  profile: normal
+  modules:
+    auth:
+      path: src/auth
+      responsibility: Authentication and authorization
+      dependsOn: []
+      entities: [User, Session]
+      apis: [login, logout]
+    order:
+      path: src/order
+      responsibility: Order processing
+      dependsOn: [auth]
+      entities: [Order]
+      apis: [createOrder]
+
+ai:
+  provider: openai-compatible
+  model: gpt-4
+
+spec:
+  outputDir: specs
+  defaultLanguage: zh-CN
+  confidenceThreshold: 0.6
+
+verify:
+  command: npm test
+  timeout: 300
+  reportFormat:
+    - json
+    - html
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.test.*"

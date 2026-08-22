@@ -1,0 +1,55 @@
+# ===== Dependencies =====
+node_modules/
+
+# ===== Build Output =====
+dist/
+build/
+*.tsbuildinfo
+
+# ===== Test & Coverage =====
+coverage/
+*.lcov
+.nyc_output/
+
+# ===== Runtime Artifacts =====
+.speclore/.lock
+.speclore/context.json
+.speclore/reports/
+.speclore/.git-head
+.speclore/mappings/
+
+# ===== Environment & Secrets =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===== IDE & OS =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Canvas Artifacts =====
+*.canvas.tsx
+*.canvas.status.json
+*.canvas.data.json
+
+# ===== pnpm =====
+.pnpm-store/
+
+# ===== Temporary Files =====
+tmp/
+temp/
+*.tmp

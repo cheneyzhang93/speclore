@@ -1,0 +1,45 @@
+# CareFlow SpecLore Configuration
+project:
+  name: careflow
+  language: typescript
+  framework: nestjs
+  profile: strict
+  modules:
+    patient:
+      path: src/patient
+      responsibility: Patient registration, profile management, medical history
+      dependsOn: []
+      entities: [Patient, MedicalRecord]
+      apis: [registerPatient, getPatient, updateProfile]
+    appointment:
+      path: src/appointment
+      responsibility: Appointment scheduling, cancellation, reminders
+      dependsOn: [patient]
+      entities: [Appointment, TimeSlot]
+      apis: [scheduleAppointment, cancelAppointment]
+    billing:
+      path: src/billing
+      responsibility: Insurance claims, invoicing, payment processing
+      dependsOn: [patient, appointment]
+      entities: [Invoice, Claim]
+      apis: [createInvoice, submitClaim]
+
+ai:
+  provider: openai-compatible
+  model: gpt-4
+
+spec:
+  outputDir: specs
+  defaultLanguage: zh-CN
+  confidenceThreshold: 0.6
+
+verify:
+  command: npm test -- --reporter=json
+  timeout: 300
+  reportFormat:
+    - json
+    - html
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.spec.ts"

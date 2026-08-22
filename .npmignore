@@ -1,0 +1,24 @@
+# Source
+src/
+tests/
+
+# Config
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+eslint.config.js
+.prettierrc
+
+# Docs & Examples
+docs/
+examples/
+*.md
+!README.md
+
+# Dev
+.gitignore
+.github/
+coverage/
+.speclore/
+
+# Misc

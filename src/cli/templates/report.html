@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpecLore Verification Report — {{PROJECT}}</title>
+  <style>
+    :root {
+      --color-bg: #f8f9fa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-secondary: #6c757d;
+      --color-border: #dee2e6;
+      --color-passed: #198754;
+      --color-failed: #dc3545;
+      --color-skipped: #ffc107;
+      --color-unmapped: #6c757d;
+      --color-accent: #0d6efd;
+      --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    header .meta {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      text-align: center;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .stat-card .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-secondary);
+      margin-top: 0.25rem;
+    }
+    .stat-card.passed .value { color: var(--color-passed); }
+    .stat-card.failed .value { color: var(--color-failed); }
+    .stat-card.unmapped .value { color: var(--color-unmapped); }
+    section.feature {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    section.feature h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    section.feature .file {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      margin-bottom: 0.75rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 2px solid var(--color-border);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-secondary);
+    }
+    tbody td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-weight: 500;
+      font-size: 0.8rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+    }
+    .status.passed { background: #d1e7dd; color: var(--color-passed); }
+    .status.failed { background: #f8d7da; color: var(--color-failed); }
+    .status.skipped { background: #fff3cd; color: #997404; }
+    .status.unmapped { background: #e2e3e5; color: var(--color-unmapped); }
+    section.failures {
+      background: var(--color-surface);
+      border: 1px solid #f8d7da;
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.5rem;
+    }
+    section.failures h2 {
+      color: var(--color-failed);
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+    details {
+      margin-bottom: 0.75rem;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 500;
+      padding: 0.5rem 0;
+      color: var(--color-failed);
+    }
+    details pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 1rem;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      margin-top: 0.5rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--color-text-secondary);
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SpecLore Verification Report</h1>
+    <p class="meta">{{PROJECT}} &mdash; {{TIMESTAMP}}</p>
+  </header>
+
+  <div class="summary">
+    <div class="stat-card">
+      <div class="value">{{TOTAL_SCENARIOS}}</div>
+      <div class="label">Total Scenarios</div>
+    </div>
+    <div class="stat-card passed">
+      <div class="value">{{PASSED}}</div>
+      <div class="label">Passed</div>
+    </div>
+    <div class="stat-card failed">
+      <div class="value">{{FAILED}}</div>
+      <div class="label">Failed</div>
+    </div>
+    <div class="stat-card unmapped">
+      <div class="value">{{UNMAPPED}}</div>
+      <div class="label">Unmapped</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">{{PASS_RATE}}</div>
+      <div class="label">Pass Rate</div>
+    </div>
+  </div>
+
+  {{FEATURES}}
+
+  {{FAILED_DETAILS}}
+
+  <footer>
+    Generated by <a href="https://github.com/nicepkg/speclore" style="color: var(--color-accent);">SpecLore</a>
+  </footer>
+</body>
+</html>

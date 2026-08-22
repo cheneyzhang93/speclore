@@ -1,0 +1,322 @@
+/**
+ * MCP tool definitions for SpecLore.
+ *
+ * Three tools exposed via MCP:
+ *   - speclore.spec   — requirement → .feature (M1 → M2)
+ *   - speclore.code   — .feature → constraints (M3 + Handoff)
+ *   - speclore.verify — tests → acceptance report (M4 + M7)
+ *
+ * @module mcp/tools
+ */
+
+import type {
+  SpecResult,
+  ConstraintResult,
+  VerifyMcpResult,
+  ScenarioSummary,
+  ActiveConstraint,
+  FeatureFile,
+  Scenario,
+  ModuleRule,
+  ContextFile,
+} from '../types/index.js';
+import type { SpecLoreConfig } from '../types/config.js';
+import { readRequirement } from '../core/requirement-reader/index.js';
+import { generateFeature } from '../core/feature-generator/index.js';
+import { generateConstraints } from '../core/constraint-coder/index.js';
+import { runVerification } from '../core/verifier/index.js';
+import { buildContext, loadContext } from '../core/context-engine/index.js';
+import { analyzeImpact } from '../core/analyzer/index.js';
+import { loadConfig } from '../infra/config.js';
+import { logger } from '../infra/logger.js';
+import { join } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
+import { globSync } from 'glob';
+import { toJSONSchema } from 'zod';
+import { specInputSchema, codeInputSchema, verifyInputSchema } from './schemas.js';
+
+// ============================================================================
+// Tool name & description constants
+// ============================================================================
+
+export const SPEC_TOOL_NAME = 'speclore.spec';
+export const CODE_TOOL_NAME = 'speclore.code';
+export const VERIFY_TOOL_NAME = 'speclore.verify';
+
+/** Single source of truth for tool descriptions — shared by JSON Schema and Zod registration */
+export const SPEC_TOOL_DESC =
+  'Convert a requirement (text, file path, or URL) into structured BDD .feature files with scenario-level acceptance criteria.';
+export const CODE_TOOL_DESC =
+  'Generate AI coding constraint files for Cursor / Claude Code / Qoder based on .feature specs and project context.';
+export const VERIFY_TOOL_DESC =
+  'Run tests and map results back to .feature scenarios, producing an acceptance report. Supports impact analysis.';
+
+// ============================================================================
+// JSON Schema definitions for MCP tool inputs (auto-generated from Zod)
+// ============================================================================
+
+const specJsonSchema = toJSONSchema(specInputSchema, { target: 'draft-07' });
+const codeJsonSchema = toJSONSchema(codeInputSchema, { target: 'draft-07' });
+const verifyJsonSchema = toJSONSchema(verifyInputSchema, { target: 'draft-07' });
+
+export const specToolSchema = {
+  name: SPEC_TOOL_NAME,
+  description: SPEC_TOOL_DESC,
+  inputSchema: specJsonSchema as Record<string, unknown>,
+};
+
+export const codeToolSchema = {
+  name: CODE_TOOL_NAME,
+  description: CODE_TOOL_DESC,
+  inputSchema: codeJsonSchema as Record<string, unknown>,
+};
+
+export const verifyToolSchema = {
+  name: VERIFY_TOOL_NAME,
+  description: VERIFY_TOOL_DESC,
+  inputSchema: verifyJsonSchema as Record<string, unknown>,
+};
+
+// ============================================================================
+// Tool implementations
+// ============================================================================
+
+/**
+ * Execute speclore.spec tool — M1 → M2.
+ */
+export async function executeSpecTool(
+  args: { source: string; module?: string },
+  projectRoot: string,
+): Promise<SpecResult> {
+  // Input validation
+  if (!args.source || args.source.length > 50000) {
+    throw new Error('source must be between 1 and 50000 characters');
+  }
+
+  const config = loadConfig(projectRoot);
+
+  // M1: Read requirement
+  logger.info(`Reading requirement from: ${args.source.slice(0, 80)}...`);
+  const req = await readRequirement(args.source);
+
+  // M5: Build/load context
+  const specLoreDir = join(projectRoot, '.speclore');
+  const context = loadContext(specLoreDir) ?? buildContext(projectRoot, config);
+
+  // M2: Generate feature
+  const feature = await generateFeature(req, context, config, projectRoot);
+  const createdFiles = [feature.path];
+  const scenarios: ScenarioSummary[] = [];
+
+  for (const sc of feature.scenarios) {
+    scenarios.push({
+      feature: feature.featureName,
+      name: sc.name,
+      given: sc.givens.map(s => s.text),
+      when: sc.whens.map(s => s.text),
+      then: sc.thens.map(s => s.text),
+    });
+  }
+
+  const constraints = `Generated ${createdFiles.length} feature file(s) with ${scenarios.length} scenario(s).`;
+  const nextSteps =
+    'Run `speclore code` to generate AI coding constraints, or ask your AI client to implement the scenarios.';
+
+  return { createdFiles, scenarios, constraints, nextSteps };
+}
+
+/**
+ * Execute speclore.code tool — M3 + Handoff.
+ */
+export async function executeCodeTool(
+  args: { features?: string[]; tools?: string[] },
+  projectRoot: string,
+): Promise<ConstraintResult> {
+  if (args.features && args.features.length > 50) {
+    throw new Error('features array must not exceed 50 items');
+  }
+
+  const config = loadConfig(projectRoot);
+
+  // Load context
+  const specLoreDir = join(projectRoot, '.speclore');
+  const context = loadContext(specLoreDir) ?? buildContext(projectRoot, config);
+
+  // Resolve feature files
+  const featureFiles = resolveFeatureFiles(args.features, projectRoot, config);
+
+  // M3: Generate constraints
+  const writtenFiles = await generateConstraints(projectRoot, featureFiles, context, config);
+
+  // Build constraint content summary
+  const constraintContent = buildConstraintSummary(featureFiles, config);
+  const moduleRules = buildModuleRules(config);
+  const activeConstraints = buildActiveConstraints(writtenFiles, projectRoot);
+  const codingGuidance = buildCodingGuidance(featureFiles, context, config);
+
+  return {
+    writtenFiles,
+    constraintContent,
+    moduleRules,
+    activeConstraints,
+    codingGuidance,
+  };
+}
+
+/**
+ * Execute speclore.verify tool — M4 + M7.
+ */
+export async function executeVerifyTool(
+  args: { features?: string[]; impact?: boolean },
+  projectRoot: string,
+): Promise<VerifyMcpResult> {
+  const config = loadConfig(projectRoot);
+  const specLoreDir = join(projectRoot, '.speclore');
+
+  // Load context
+  const context = loadContext(specLoreDir) ?? buildContext(projectRoot, config);
+
+  // M7: Impact analysis (if requested)
+  if (args.impact) {
+    logger.info('Running impact analysis...');
+    const impact = analyzeImpact(projectRoot, context, config);
+    context.impactAnalysis = {
+      changedFiles: impact.changedFiles,
+      affectedModules: impact.affectedModules,
+      affectedFeatures: impact.affectedFeatures,
+    };
+  }
+
+  // Resolve feature files
+  const featureFiles = resolveFeatureFiles(args.features, projectRoot, config);
+
+  // M4: Run verification
+  const report = await runVerification(projectRoot, featureFiles, config);
+
+  // Build MCP result (slim view)
+  const { summary } = report;
+  return {
+    summary: `${summary.passed}/${summary.totalScenarios} scenarios passed (${summary.passRate})`,
+    passed: summary.passed,
+    failed: summary.failed,
+    unmapped: summary.unmapped,
+    details: report.features,
+    failedDetails: report.failedDetails,
+  };
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function resolveFeatureFiles(
+  patterns: string[] | undefined,
+  projectRoot: string,
+  config: SpecLoreConfig,
+): FeatureFile[] {
+  const specsDir = join(projectRoot, config.spec.outputDir);
+  const searchPatterns = patterns && patterns.length > 0 ? patterns : [`${specsDir}/**/*.feature`];
+
+  const files: FeatureFile[] = [];
+  for (const pattern of searchPatterns) {
+    const matches = globSync(pattern, { cwd: projectRoot, absolute: true });
+    for (const filePath of matches) {
+      if (existsSync(filePath)) {
+        const content = readFileSync(filePath, 'utf-8');
+        files.push(parseFeatureFile(filePath, content));
+      }
+    }
+  }
+  return files;
+}
+
+function parseFeatureFile(filePath: string, content: string): FeatureFile {
+  const featureMatch = content.match(/Feature:\s*(.+)/);
+  const featureName = featureMatch?.[1]?.trim() ?? filePath;
+  const scenarios: Scenario[] = [];
+  const tags: string[] = [];
+
+  // Extract feature-level tags
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const tagMatch = line.trim().match(/^(@\S+(?:\s+@\S+)*)/);
+    if (tagMatch) {
+      tags.push(...tagMatch[1]!.split(/\s+/).filter(t => t.startsWith('@')));
+    }
+  }
+
+  // Parse scenarios
+  const scenarioRegex = /Scenario(?: Outline)?:\s*(.+)/g;
+  let match;
+  while ((match = scenarioRegex.exec(content)) !== null) {
+    scenarios.push({
+      name: match[1]!.trim(),
+      givens: [],
+      whens: [],
+      thens: [],
+      tags: [],
+    });
+  }
+
+  return {
+    path: filePath,
+    featureName,
+    scenarios,
+    tags,
+    confidence: 1.0,
+    needsReview: [],
+  };
+}
+
+function buildConstraintSummary(features: FeatureFile[], config: SpecLoreConfig): string {
+  const moduleCount = Object.keys(config.project.modules).length;
+  const scenarioCount = features.reduce((sum, f) => sum + f.scenarios.length, 0);
+  return `Constraints for ${moduleCount} module(s), ${features.length} feature(s), ${scenarioCount} scenario(s). Profile: ${config.project.profile}.`;
+}
+
+function buildModuleRules(config: SpecLoreConfig): ModuleRule[] {
+  const rules: ModuleRule[] = [];
+  for (const [name, mod] of Object.entries(config.project.modules)) {
+    rules.push({
+      module: name,
+      boundaries: {
+        name,
+        responsibility: mod.responsibility,
+        publicApis: mod.apis ?? [],
+        internalObjects: mod.entities ?? [],
+        dependsOn: mod.dependsOn ?? [],
+      },
+      namingConventions: [],
+      forbiddenPatterns: [],
+    });
+  }
+  return rules;
+}
+
+function buildActiveConstraints(writtenFiles: string[], _projectRoot: string): ActiveConstraint[] {
+  return writtenFiles.map(file => ({
+    file,
+    scope: 'project' as const,
+    appliesTo: '**/*',
+    summary: `SpecLore constraint file — module boundaries and coding rules`,
+  }));
+}
+
+function buildCodingGuidance(
+  _features: FeatureFile[],
+  context: ContextFile,
+  config: SpecLoreConfig,
+): string {
+  const parts: string[] = [];
+  parts.push(`Project: ${config.project.name}`);
+  parts.push(`Language: ${context.projectSummary.language}, Framework: ${context.projectSummary.framework}`);
+  parts.push(`Modules: ${Object.keys(config.project.modules).join(', ')}`);
+  parts.push(`Profile: ${config.project.profile}`);
+
+  if (context.moduleBoundaries.length > 0) {
+    parts.push('Module boundaries: respect module separation, do not cross-reference internal objects.');
+  }
+
+  const guidance = parts.join('. ') + '.';
+  return guidance.slice(0, 2000);
+}

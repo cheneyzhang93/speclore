@@ -1,0 +1,40 @@
+/**
+ * AI tool detector — scans project for Cursor, Claude Code, Qoder configs.
+ *
+ * @module core/constraint-coder/ai-tool-detector
+ */
+
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import type { AITool } from '../../types/index.js';
+import { logger } from '../../infra/logger.js';
+
+/**
+ * Detect which AI tools are present in the project.
+ */
+export function detectAITools(projectRoot: string): AITool[] {
+  const tools: AITool[] = [];
+
+  if (existsSync(join(projectRoot, '.cursor'))) {
+    tools.push('cursor');
+    logger.debug('Detected Cursor (.cursor/)');
+  }
+
+  if (
+    existsSync(join(projectRoot, '.claude')) ||
+    existsSync(join(projectRoot, 'CLAUDE.md')) ||
+    existsSync(join(projectRoot, '.mcp.json'))
+  ) {
+    tools.push('claude');
+    logger.debug('Detected Claude Code (.claude/ or CLAUDE.md or .mcp.json)');
+  }
+
+  if (existsSync(join(projectRoot, '.qoder'))) {
+    tools.push('qoder');
+    logger.debug('Detected Qoder (.qoder/)');
+  }
+
+  // Other clients are community-contributed
+  logger.debug(`Detected AI tools: ${tools.length > 0 ? tools.join(', ') : 'none'}`);
+  return tools;
+}

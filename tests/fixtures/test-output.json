@@ -1,0 +1,33 @@
+{
+  "testResults": [
+    {
+      "name": "tests/auth/login.test.ts",
+      "assertionResults": [
+        {
+          "title": "should login with valid credentials",
+          "fullName": "Auth login should login with valid credentials",
+          "status": "passed",
+          "duration": 42,
+          "failureMessages": []
+        },
+        {
+          "title": "should reject invalid password",
+          "fullName": "Auth login should reject invalid password",
+          "status": "passed",
+          "duration": 15,
+          "failureMessages": []
+        },
+        {
+          "title": "should lock account after 5 failures",
+          "fullName": "Auth login should lock account after 5 failures",
+          "status": "failed",
+          "duration": 120,
+          "failureMessages": ["Expected account to be locked but it was not"]
+        }
+      ]
+    }
+  ],
+  "numTotalTests": 3,
+  "numPassedTests": 2,
+  "numFailedTests": 1
+}
