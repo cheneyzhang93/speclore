@@ -20,7 +20,7 @@ export function detectTestFramework(projectRoot: string): TestFramework {
   }
 
   try {
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
     if ('vitest' in deps) return 'vitest';

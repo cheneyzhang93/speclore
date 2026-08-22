@@ -92,7 +92,7 @@ server.registerTool(
     description: STATUS_TOOL_DESC,
     inputSchema: statusInputSchema.shape,
   },
-  async (args) => {
+  (args) => {
     const result = executeStatusTool(
       { feature: args.feature },
       getProjectRoot(),
