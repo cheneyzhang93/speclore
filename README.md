@@ -56,7 +56,7 @@ speclore init
 ### 安装方式二：git clone
 
 ```bash
-git clone https://github.com/nicepkg/speclore.git
+git clone https://github.com/cheneyzhang93/speclore.git
 cd speclore
 pnpm install
 pnpm build
@@ -447,7 +447,7 @@ export class ConfluenceReader implements ReaderPlugin {
 ### 本地开发
 
 ```bash
-git clone https://github.com/speclore/speclore.git
+git clone https://github.com/cheneyzhang93/speclore.git
 cd speclore
 pnpm install
 pnpm dev        # watch 模式开发
