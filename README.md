@@ -56,44 +56,47 @@ speclore init
 ### 安装方式二：git clone
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/speclore/speclore.git
+git clone https://github.com/nicepkg/speclore.git
 cd speclore
-
-# 2. 安装依赖并构建
 pnpm install
 pnpm build
+```
 
-# 3. 在你的项目中配置 MCP（手动指向本地路径）
-# 在 .cursor/mcp.json 或 .mcp.json 中添加：
-# {
-#   "mcpServers": {
-#     "speclore": {
-#       "command": "node",
-#       "args": ["/path/to/speclore/dist/mcp/server.js"]
-#     }
-#   }
-# }
+在你的项目中配置 MCP（手动指向本地路径），在 `.cursor/mcp.json` 或 `.mcp.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "speclore": {
+      "command": "node",
+      "args": ["/path/to/speclore/dist/mcp/server.js"]
+    }
+  }
+}
 ```
 
 ### 30 秒上手
 
+**Step 1 — Setup（一次性）**
+
 ```bash
-# 1. Setup（一次性）
 speclore setup
-
-# 2. 跟 AI 说话（在 Cursor / Claude Code / Qoder 中）
-#    "帮我把这个需求生成 feature 文件：用户注册需要邮箱验证"
-#    → AI 自动调用 speclore.spec 工具
-
-# 3. 生成约束
-#    "生成编码约束"
-#    → AI 自动调用 speclore.code 工具
-
-# 4. 验收
-#    "运行验收测试"
-#    → AI 自动调用 speclore.verify 工具
 ```
+
+**Step 2 — 跟 AI 说话**（在 Cursor / Claude Code / Qoder 中）
+
+> "帮我把这个需求生成 feature 文件：用户注册需要邮箱验证"
+> → AI 自动调用 `speclore.spec` 工具
+
+**Step 3 — 生成约束**
+
+> "生成编码约束"
+> → AI 自动调用 `speclore.code` 工具
+
+**Step 4 — 验收**
+
+> "运行验收测试"
+> → AI 自动调用 `speclore.verify` 工具
 
 ---
 
