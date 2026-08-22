@@ -1,579 +1,227 @@
 # SpecLore
 
-> AI-powered CLI for BDD specification, AI coding constraints & automated acceptance testing.
-> MCP-native integration with Cursor, Claude Code & Qoder.
+**中文** | [English](README.en.md)
 
-**English** | [中文](README.md)
-
-[![npm version](https://img.shields.io/npm/v/speclore.svg)](https://www.npmjs.com/package/speclore)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![npm](https://img.shields.io/npm/v/speclore.svg)](https://www.npmjs.com/package/speclore)
 [![CI](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml/badge.svg)](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
----
+**Product-engineering collaboration for the AI coding era — turn requirements into verifiable BDD specs, and verification into an automated pipeline.**
 
-## Table of Contents
-
-- [Why SpecLore](#why-speclore)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Workflow](#workflow)
-- [Usage Guide](#usage-guide)
-- [Configuration](#configuration)
-- [Test Mapping](#test-mapping)
-- [Plugin Development](#plugin-development)
-- [MCP Tool Reference](#mcp-tool-reference)
-- [Supported AI Clients](#supported-ai-clients)
-- [Architecture](#architecture)
-- [Development](#development)
-
----
-
-## Why SpecLore
-
-AI coding tools solve "how to write code", but three critical problems in product-engineering collaboration remain:
-
-1. **Requirement Structuring** — Product requirements are scattered across documents, chat logs, and verbal descriptions. AI cannot directly generate verifiable code.
-2. **Acceptance Automation** — AI writes code, but no one knows if it truly meets the requirements.
-3. **AI Constraint** — AI coding tools don't understand module boundaries, naming conventions, or forbidden patterns, producing code that "runs but is wrong".
-
-SpecLore solves all three with one automated pipeline:
+SpecLore transforms scattered requirements (docs, chats, verbal specs) into structured BDD `.feature` acceptance criteria, generates coding constraints for AI tools like Cursor / Claude Code / Qoder, then runs tests and produces acceptance reports. Seamless collaboration with AI clients via MCP protocol.
 
 ```
-Requirements (any format) → BDD .feature specs → AI coding constraints → Test execution → Acceptance report
+Requirements (any format) → BDD .feature → AI constraints + test scaffolding → acceptance report
 ```
 
 ---
 
-## Features
-
-- **Requirement Structuring** — Any input format (Markdown / Word / Excel / PDF / Image / URL / plain text) → BDD .feature acceptance criteria
-- **Acceptance Automation** — Run tests → auto-map results back to .feature scenarios → generate acceptance reports (JSON + HTML)
-- **AI Constraint Generation** — Auto-generate coding constraints for Cursor / Claude Code / Qoder (module boundaries, naming conventions, forbidden patterns)
-- **Workflow Engine** — Stateful pipeline: Requirements → Constraints → Coding → Verification, with enforced ordering
-- **Test Scaffolding** — Auto-generate `it.skip` test files from feature scenarios, supporting vitest / jest / mocha
-- **MCP-Native Integration** — AI clients directly call 4 MCP tools (status / spec / code / verify); users interact entirely in natural language
-- **Plugin System** — Extend with custom Reader / Writer / Parser plugins
-- **Change Impact Analysis** — Automatically infer affected features and modules based on git diff
-
----
-
-## Quick Start
-
-### Step 1 — Install
-
-**npm global install (recommended)**
+## Install
 
 ```bash
 npm install -g speclore
 ```
 
-**git clone (local development)**
+## Quick Start
+
+Three steps from zero to acceptance:
 
 ```bash
-git clone https://github.com/cheneyzhang93/speclore.git
-cd speclore && pnpm install && pnpm build
+# 1. Initialize project (auto-detect AI tools, generate config)
+cd your-project && speclore setup
+
+# 2. Generate .feature acceptance criteria from requirements
+speclore spec "Patient registration requires phone verification, support WeChat login"
+
+# 3. Generate AI coding constraints + test scaffolding
+speclore code
 ```
 
-### Step 2 — Project Initialization
+Then code in your AI client, and run acceptance when done:
 
 ```bash
-cd your-project
-speclore setup
+speclore verify
 ```
 
-`setup` auto-detects AI tools (Cursor / Qoder / Claude Code), creates `.speclore/config.yaml`, writes MCP config, and generates rule files.
-
-### Step 3 — Configure MCP
-
-**npm global install**: `setup` already wrote MCP config — no manual action needed.
-
-**git clone (local development)**: Manually add to your AI client's MCP config:
-
-```json
-// .cursor/mcp.json or .qoder/mcp.json
-{
-  "mcpServers": {
-    "speclore": {
-      "command": "node",
-      "args": ["/path/to/speclore/dist/mcp/server.js"]
-    }
-  }
-}
-```
-
-### Step 4 — Configure Test Command
-
-Before verification, edit `.speclore/config.yaml` to set the test command and mapping rules:
-
-```yaml
-verify:
-  command: "pnpm test"           # Your test command
-  mapping:
-    patterns:
-      - feature: "specs/{module}/{name}.feature"
-        test: "tests/{module}/{name}.test.*"
-```
-
-### Step 5 — Start the Workflow
-
-You're ready to go. See the [Workflow section](#workflow) below for the full pipeline.
+That's it. You can also complete the entire workflow using natural language in your AI client (Cursor / Qoder / Claude Code) — `setup` already configured MCP automatically.
 
 ---
 
 ## Workflow
 
-SpecLore's workflow is a stateful pipeline: **Requirements → Constraints → Coding → Verification**.
-Each step is driven by an MCP tool, connected via the project state file (`.speclore/state.yaml`).
+```
+speclore.status → speclore.spec → speclore.code → (AI codes) → speclore.verify
+   check status    generate feature  constraints+scaffold   implement     verify tests
+       ↓                ↓               ↓               ↓              ↓
+   project state   → specified     → constrained     → coding     → verified
+```
 
-### Workflow Overview
+Each tool returns current state and next-step guidance. Out-of-order calls produce clear errors:
 
-| Step | MCP Tool | Input | Output | State Change |
-|------|---------|-------|--------|-------------|
-| 1. Check status | `speclore.status` | — | Project status + recommended action | — |
-| 2. Generate requirements | `speclore.spec` | Requirement text | .feature files | → specified |
-| 3. Generate constraints | `speclore.code` | .feature files | Constraint rules + test scaffolding | → constrained |
-| 4. Implement code | AI client | Constraint rules (auto-loaded) | Business code + test code | coding |
-| 5. Run verification | `speclore.verify` | .feature files | Acceptance report | → verified |
-
-### Full Example
-
-Using "Patient Registration" as an example:
-
-**Step 1 — Check project status**: AI calls `speclore.status` → returns `recommendedActions`.
-
-**Step 2 — Generate requirements**: AI calls `speclore.spec` → creates `specs/patient/register.feature`, state → `specified`, `nextStep: "Call speclore.code"`.
-
-**Step 3 — Generate constraints + test scaffolding**: AI calls `speclore.code` → writes `.qoder/rules/speclore.md` (with feature business rules) + `tests/patient/register.test.ts` (`it.skip` stubs), state → `constrained`.
-
-**Step 4 — Implement**: AI reads constraints automatically. User fills in test scaffolding.
-
-**Step 5 — Verify**: AI calls `speclore.verify` → runs tests → maps results to scenarios, state → `verified`.
-
-### Enforced Ordering
-
-| Scenario | Result |
-|----------|--------|
-| Call `speclore.code` without .feature files | Error: "No .feature files found. Run speclore.spec first." |
-| Call `speclore.verify` without test scaffolding | Error: "No test scaffolding. Run speclore.code first." |
-| Call any tool on uninitialized project | Auto-creates `.speclore/config.yaml` and prompts configuration |
+| Out-of-order scenario | Error message |
+|----------------------|---------------|
+| Call `code` without .feature files | `No .feature files found. Run speclore.spec first.` |
+| Call `verify` without test scaffolding | `No test scaffolding. Run speclore.code first.` |
+| Project not initialized | Auto-creates `.speclore/config.yaml` |
 
 ---
 
-## Usage Guide
+## Example
 
-### Three-Layer Interaction Model
+A complete conversation in an AI client for "patient registration":
 
-| Layer | User Type | Interaction | Example |
-|-------|-----------|-------------|---------|
-| **Layer 1** | Beginner | Talk to AI | "Turn this requirement into a feature file" |
-| **Layer 2** | Regular user | CLI commands | `speclore spec requirements.md` |
-| **Layer 3** | Power user | CLI + config | `speclore verify --impact --watch` |
+**You**: Help me implement patient registration with phone verification
 
-### Command Reference
+**AI** (calls `speclore.spec`): Generated `specs/patient/register.feature` with 3 acceptance scenarios:
+- Successful phone registration
+- Reject invalid phone format
+- Conflict on duplicate phone number
 
-#### `speclore` (smart mode)
+**AI** (calls `speclore.code`): Generated coding constraints and test scaffolding:
+- `.qoder/rules/speclore.md` — coding constraints (with business rules)
+- `tests/patient/register.test.ts` — test scaffolding (3 `it.skip` placeholders)
 
-Run without arguments to show project status; pass text to generate features directly.
+**You**: OK, I'll implement the code and tests
 
-```bash
-speclore                                    # Show project status
-speclore "User registration needs email verification"  # Generate feature from text
-```
+*(AI reads constraint rules while coding; you fill in the `it.skip` test scaffolding)*
 
-#### `speclore setup [--global]`
+**You**: Run acceptance
 
-One-time project configuration. Detects AI tools → writes MCP config → generates rule files.
+**AI** (calls `speclore.verify`): ✅ 3/3 scenarios passed (100%)
 
-```bash
-speclore setup            # Project-level config
-speclore setup --global   # Global config (~/.speclore/)
-```
+---
 
-#### `speclore init`
+## Supported Input Formats
 
-Initialize project context. Scans project structure → detects modules → generates `.speclore/context.json`.
+Markdown · Word · Excel · PDF · Image (OCR) · URL · Plain text
 
 ```bash
-speclore init
+speclore spec requirements.md          # Markdown
+speclore spec design.docx              # Word
+speclore spec specs.xlsx               # Excel
+speclore spec mockup.png               # Image
+speclore spec https://jira.example/123 # URL
+speclore spec "Users need password reset"  # Plain text
 ```
 
-#### `speclore status`
+## Command Reference
 
-Show project diagnostic status: config, context, feature files, AI tool detection results.
+| Command | Purpose |
+|---------|---------|
+| `speclore` | Show project status |
+| `speclore setup` | Initialize project (detect AI tools → write MCP config → generate rules) |
+| `speclore spec <source>` | Requirement source → `.feature` acceptance criteria |
+| `speclore code` | `.feature` → AI coding constraints + test scaffolding |
+| `speclore verify` | Run tests → acceptance report (mapped to .feature scenarios) |
+| `speclore verify --watch` | Watch mode, auto-rerun on file changes |
+| `speclore status` | View project state, workflow progress, recommended actions |
+| `speclore migrate` | Migrate existing .feature files to workflow state after upgrade |
+| `speclore init` | Scan project structure, generate context file |
+| `speclore teardown` | Uninstall cleanup |
 
-```bash
-speclore status
-```
+## MCP Tools
 
-#### `speclore spec <source>`
+SpecLore provides 4 MCP tools, called by AI clients via MCP protocol:
 
-Requirement source → .feature files. Supports file paths, URLs, and direct text.
+| Tool | Purpose | State change |
+|------|---------|-------------|
+| `speclore.status` | Project status + recommended actions | — |
+| `speclore.spec` | Requirements → .feature | → `specified` |
+| `speclore.code` | .feature → constraints + test scaffolding | → `constrained` |
+| `speclore.verify` | Tests → acceptance report | → `verified` |
 
-```bash
-speclore spec requirements.md                        # Markdown file
-speclore spec https://jira.example.com/issue/PROJ-123 # URL
-speclore spec "User needs password reset"             # Direct text
-speclore spec design.docx                             # Word document
-speclore spec specs.xlsx                              # Excel spreadsheet
-speclore spec mockup.png                              # Image (OCR)
-speclore spec req.pdf                                 # PDF document
-speclore spec requirements.md -m order                # Target specific module
-```
+Every tool response includes a `workflow` field (`currentState` + `nextStep`) to guide AI through the correct sequence.
 
-#### `speclore code [features...]`
+## Supported AI Clients
 
-Convert .feature files into AI coding constraints.
+| Client | Config file | Constraint rules file |
+|--------|------------|----------------------|
+| Cursor | `.cursor/mcp.json` | `.cursor/rules/speclore.mdc` |
+| Claude Code | `.mcp.json` | `.claude/rules/speclore.md` |
+| Qoder | `.qoder/mcp.json` | `.qoder/rules/speclore.md` |
 
-```bash
-speclore code                              # Process all features
-speclore code specs/order/create.feature   # Process specific feature
-```
-
-#### `speclore verify [features...] [--impact] [--watch] [--timeout <min>]`
-
-Run tests and map results to .feature scenarios.
-
-```bash
-speclore verify                        # Run all verification
-speclore verify --impact               # With change impact analysis
-speclore verify --watch                # Watch mode (auto-rerun on file changes)
-speclore verify --watch --timeout 60   # Watch for 60 minutes
-```
-
-#### `speclore teardown [--global]`
-
-Uninstall and clean up, removing SpecLore config and generated files.
-
-```bash
-speclore teardown            # Clean project-level config
-speclore teardown --global   # Clean global config
-```
+`speclore setup` auto-detects and configures.
 
 ---
 
 ## Configuration
 
-### config.yaml Full Reference
+Core config in `.speclore/config.yaml` (generated by `setup`):
 
-Configuration file located at `.speclore/config.yaml`:
+```yaml
+verify:
+  command: "pnpm test"              # Your test command
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.test.*"
+```
+
+<details>
+<summary>Full config reference</summary>
 
 ```yaml
 project:
-  name: my-project          # Project name
-  language: typescript       # Project language
-  framework: nestjs          # Framework
+  name: my-project
   profile: normal            # strict | normal | minimal
   modules:
     order:
       path: src/order
-      responsibility: Order management and processing
+      responsibility: Order management
       dependsOn: [inventory, payment]
-      entities: [Order, OrderItem]
-      apis: [createOrder, getOrder]
 
 ai:
   provider: openai-compatible  # openai-compatible | claude | ollama
   baseUrl: https://api.openai.com/v1
   model: gpt-4
-  apiKeyEnv: OPENAI_API_KEY   # Environment variable name
+  apiKeyEnv: OPENAI_API_KEY
 
 spec:
-  outputDir: specs            # .feature output directory
-  defaultLanguage: en         # Default language
-  confidenceThreshold: 0.6    # Mark as needsReview below this value
+  outputDir: specs
+  defaultLanguage: en
+  confidenceThreshold: 0.6
 
 verify:
-  command: npm test           # Test command
-  timeout: 300                # Timeout (seconds)
-  reportFormat: [json, html]  # Report formats
+  command: npm test
+  timeout: 300
+  reportFormat: [json, html]
   mapping:
     patterns:
       - feature: "specs/{module}/{name}.feature"
         test: "tests/{module}/{name}.test.*"
-
-plugins:
-  readers: []
-  writers: []
-  parsers: []
 ```
 
-### Profile Modes
-
-| Profile | Use Case | Constraint Granularity |
-|---------|----------|----------------------|
-| **strict** | Production, team collaboration | Full ModuleRule + naming conventions + forbidden patterns |
-| **normal** | Daily development (default) | Core module boundaries + basic conventions |
-| **minimal** | Prototyping, personal projects | Basic module boundaries |
-
----
-
-## Test Mapping
-
-### Mapping Files (Recommended)
-
-When AI generates test code, it also generates mapping files at `.speclore/mappings/{module}/{feature}.json`:
-
-```json
-{
-  "feature": "specs/order/create.feature",
-  "generatedAt": "2024-01-15T10:30:00Z",
-  "scenarios": {
-    "Create valid order": {
-      "testFile": "tests/order/create.test.ts",
-      "testMethod": "should create order with valid items"
-    },
-    "Reject when inventory insufficient": {
-      "testFile": "tests/order/create.test.ts",
-      "testMethod": "should reject when inventory is insufficient"
-    }
-  }
-}
-```
-
-### Explicit Markers (Fallback)
-
-Add `@speclore-scenario` comment markers in test files:
-
-```typescript
-// @speclore-scenario: Create valid order
-it('should create order with valid items', () => { ... });
-```
-
-### Mapping Priority
-
-```
-Mapping files → Explicit markers → unmapped
-```
-
----
-
-## Plugin Development
-
-### Plugin Types
-
-| Type | Interface | Purpose |
-|------|-----------|---------|
-| **ReaderPlugin** | `{ name, supportedFormats[], canRead(), read() }` | Custom requirement source parsing |
-| **WriterPlugin** | `{ toolName, configFile, detect(), write(), remove() }` | Custom AI tool constraint output |
-| **ParserPlugin** | `{ framework, canParse(), parse() }` | Custom test result parsing |
-
-### Development Guide
-
-```typescript
-// 1. Create plugin
-import type { ReaderPlugin, StructuredRequirement } from 'speclore';
-
-export class ConfluenceReader implements ReaderPlugin {
-  readonly name = 'confluence-reader';
-  readonly supportedFormats = ['confluence-url'];
-
-  canRead(source: string): boolean {
-    return source.includes('atlassian.net/wiki');
-  }
-
-  async read(source: string): Promise<StructuredRequirement[]> {
-    // Fetch from Confluence API and parse
-    // ...
-  }
-}
-
-// 2. Publish as npm package
-// 3. Register in config.yaml
-// plugins:
-//   readers:
-//     - name: confluence-reader
-//       package: speclore-confluence-reader
-```
-
----
-
-## MCP Tool Reference
-
-SpecLore provides 4 MCP tools, used in workflow order:
-
-> `speclore.status` → `speclore.spec` → `speclore.code` → `speclore.verify`
-
-Each tool returns a `workflow` field with current state and recommended next step.
-
-### `speclore.status`
-
-Check project workflow status, feature states, and recommended actions.
-
-**Input**:
-```json
-{
-  "feature": "specs/auth/register.feature"  // optional, omit for all
-}
-```
-
-**Output**:
-```json
-{
-  "project": { "initialized": true, "configCreated": false, "testCommand": "pnpm test", "aiToolsDetected": ["qoder"] },
-  "features": [
-    { "file": "specs/auth/register.feature", "state": "constrained", "scenarios": 3, "constraintFiles": [".qoder/rules/speclore.md"], "testFiles": ["tests/auth/register.test.ts"] }
-  ],
-  "summary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 },
-  "recommendedActions": ["Fill in test scaffolding implementations, then start coding."]
-}
-```
-
-### `speclore.spec`
-
-Requirements → .feature files.
-
-**Input**:
-```json
-{
-  "source": "User registration requires email verification, password at least 8 characters",
-  "module": "auth"
-}
-```
-
-**Output**:
-```json
-{
-  "createdFiles": ["specs/auth/register.feature"],
-  "scenarios": [
-    {
-      "feature": "User Registration",
-      "name": "Valid email registration succeeds",
-      "given": ["System is running"],
-      "when": ["User provides valid email and password and submits registration"],
-      "then": ["System creates account and sends verification email"]
-    }
-  ],
-  "constraints": "Generated 1 feature file(s) with 3 scenario(s).",
-  "nextSteps": "Run `speclore code` to generate AI coding constraints.",
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "specified",
-    "nextStep": "Call speclore.code to generate constraints and test scaffolding.",
-    "projectSummary": { "total": 1, "specified": 1, "constrained": 0, "coding": 0, "verified": 0 }
-  }
-}
-```
-
-### `speclore.code`
-
-.feature → AI coding constraints.
-
-**Input**:
-```json
-{
-  "features": ["specs/auth/register.feature"],
-  "tools": ["cursor", "claude"]
-}
-```
-
-**Output**:
-```json
-{
-  "writtenFiles": [".cursor/rules/speclore.mdc", ".claude/rules/speclore.md"],
-  "constraintContent": "Constraints for 2 module(s)...",
-  "moduleRules": [...],
-  "activeConstraints": [...],
-  "codingGuidance": "Project: my-app. Language: TypeScript...",
-  "scaffoldFiles": [
-    { "testFile": "tests/auth/register.test.ts", "framework": "vitest", "scenarios": 3 }
-  ],
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "constrained",
-    "nextStep": "Start coding. Constraints and test scaffolding are ready.",
-    "projectSummary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 }
-  }
-}
-```
-
-### `speclore.verify`
-
-Test execution → acceptance report.
-
-**Input**:
-```json
-{
-  "features": ["specs/auth/register.feature"],
-  "impact": false
-}
-```
-
-**Output**:
-```json
-{
-  "summary": "5/5 scenarios passed (100%)",
-  "passed": 5,
-  "failed": 0,
-  "unmapped": 0,
-  "details": [...],
-  "failedDetails": [],
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "verified",
-    "nextStep": "All features verified. Add new requirements with speclore.spec.",
-    "projectSummary": { "total": 1, "specified": 0, "constrained": 0, "coding": 0, "verified": 1 }
-  }
-}
-```
-
----
-
-## Supported AI Clients
-
-| Client | Status | Config Files |
-|--------|--------|-------------|
-| Cursor | v1 built-in | `.cursor/mcp.json` + `.cursor/rules/speclore.mdc` |
-| Claude Code | v1 built-in | `.mcp.json` + `.claude/rules/speclore.md` |
-| Qoder | v1 built-in | `.qoder/mcp.json` + `.qoder/rules/speclore.md` |
-| Copilot / Windsurf / Cline / Gemini CLI / Trae / AGENTS.md | Community | — |
+</details>
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────
-│                     CLI / MCP Server                     │
-──────────┬──────────┬────────────────────┬─────────────┤
-│  M1      │  M2      │  M3      │  M4      │  M5         │
-│ Requirement│ Feature │ Constraint│ Acceptance│ Context     │
-│ Ingestion │ Generator│ Coder    │ Verifier  │ Engine      │
-├──────────┴──────────┴──────────┴──────────┴─────────────
-│              M7 Advanced Analysis (RDG/CDG/Impact)        │
-├─────────────────────────────────────────────────────────┤
-│              AI Provider (OpenAI / Claude / Ollama)       │
-├─────────────────────────────────────────────────────────┤
-│              Plugin System (Reader / Writer / Parser)     │
-├─────────────────────────────────────────────────────────┤
-│              Infrastructure (Config / Logger / FileLock)  │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                  CLI / MCP Server                      │
+├──────────┬──────────┬──────────┬──────────┬──────────┤
+│ Ingest   │ Feature  │Constraint│ Verify   │ Context  │
+│ (M1)     │ Gen (M2) │ (M3)     │ (M4)     │ Eng (M5) │
+├──────────┴──────────┴──────────┴──────────┴──────────┤
+│       State Manager · Test Scaffolder · Impact Analysis │
+├──────────────────────────────────────────────────────┤
+│          AI Provider (OpenAI / Claude / Ollama)        │
+├──────────────────────────────────────────────────────┤
+│          Plugin System (Reader / Writer / Parser)      │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Development
 
-### Local Development
-
 ```bash
 git clone https://github.com/cheneyzhang93/speclore.git
-cd speclore
-pnpm install
-pnpm dev        # Watch mode
-pnpm test       # Run tests
-pnpm build      # Build
+cd speclore && pnpm install && pnpm build
+pnpm test       # 333 tests
+pnpm dev        # watch mode
 ```
-
-### Contributing
-
-1. Fork this repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit changes: `git commit -am 'Add my feature'`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
-
----
 
 ## License
 

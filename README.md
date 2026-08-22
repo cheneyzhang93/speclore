@@ -1,658 +1,227 @@
 # SpecLore
 
-> AI 产研协同 CLI 工具 — 在 AI 编码时代实现「需求结构化 → 验收自动化 → AI 约束化」
->
-> AI-powered CLI for BDD specification, AI coding constraints & automated acceptance testing. MCP-native integration with Cursor, Claude Code & Qoder.
-
 [English](README.en.md) | **中文**
 
-[![npm version](https://img.shields.io/npm/v/speclore.svg)](https://www.npmjs.com/package/speclore)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![npm](https://img.shields.io/npm/v/speclore.svg)](https://www.npmjs.com/package/speclore)
 [![CI](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml/badge.svg)](https://github.com/cheneyzhang93/speclore/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
----
+**AI 编码时代的产研协同工具 — 把需求变成可验收的 BDD 规格，把验收变成自动化流水线。**
 
-## 目录
-
-- [为什么需要 SpecLore](#为什么需要-speclore)
-- [核心特性](#核心特性)
-- [快速开始](#快速开始)
-- [工作流](#工作流)
-- [使用手册](#使用手册)
-- [配置说明](#配置说明)
-- [测试映射](#测试映射)
-- [插件开发](#插件开发)
-- [MCP 工具参考](#mcp-工具参考)
-- [支持的 AI 客户端](#支持的-ai-客户端)
-- [技术架构](#技术架构)
-- [开发](#开发)
-
----
-
-## 为什么需要 SpecLore
-
-AI 编码工具解决了「怎么写代码」的问题，但产研协同中三个关键问题仍未解决：
-
-1. **需求结构化** — 产品需求散落在文档、聊天记录、口头描述中，AI 无法直接生成可验收的代码
-2. **验收自动化** — AI 写了代码，但没有人知道它是否真正满足了需求
-3. **AI 约束化** — AI 编码时不了解模块边界、命名规范、禁止模式，容易写出「能跑但不对」的代码
-
-SpecLore 用一条自动化流水线解决这三个问题：
+SpecLore 将散落在文档、聊天、口头中的需求，转化为结构化的 BDD `.feature` 验收标准，再为 Cursor / Claude Code / Qoder 等 AI 编码工具生成编码约束，最后自动运行测试并生成验收报告。全程通过 MCP 协议与 AI 客户端无缝协作。
 
 ```
-需求（任意格式）→ BDD .feature 验收标准 → AI 编码约束 → 测试运行 → 验收报告
+需求（任意格式）→ BDD .feature → AI 编码约束 + 测试骨架 → 测试验收报告
 ```
 
 ---
 
-## 核心特性
-
-- **需求结构化** — 任意格式输入（Markdown / Word / Excel / PDF / 图片 / URL / 直接文本）→ BDD .feature 验收标准
-- **验收自动化** — 运行测试 → 结果自动映射回 .feature 场景 → 生成验收报告（JSON + HTML）
-- **AI 约束化** — 自动为 Cursor / Claude Code / Qoder 生成编码约束（模块边界、命名规范、禁止模式）
-- **工作流引擎** — 有状态流水线：需求 → 约束 → 编码 → 验收，每步强约束，乱序自动报错
-- **测试骨架生成** — 从 feature 场景自动生成 `it.skip` 测试文件，支持 vitest / jest / mocha
-- **MCP 原生集成** — AI 客户端直接调用 4 个 MCP 工具（status / spec / code / verify），用户全程自然语言交互
-- **插件系统** — 自定义 Reader / Writer / Parser 扩展
-- **变更影响分析** — 基于 git diff 自动推断受影响的 feature 和模块
-
----
-
-## 快速开始
-
-### Step 1 — 安装
-
-**npm 全局安装（推荐）**
+## 安装
 
 ```bash
 npm install -g speclore
 ```
 
-**git clone（本地开发）**
+## 快速开始
+
+三步从零到验收：
 
 ```bash
-git clone https://github.com/cheneyzhang93/speclore.git
-cd speclore && pnpm install && pnpm build
+# 1. 初始化项目（自动检测 AI 工具，生成配置）
+cd your-project && speclore setup
+
+# 2. 从需求生成 .feature 验收标准
+speclore spec "患者注册需要手机号验证，支持微信登录"
+
+# 3. 生成 AI 编码约束 + 测试骨架
+speclore code
 ```
 
-### Step 2 — 项目初始化
+然后在 AI 客户端中编码，完成后运行验收：
 
 ```bash
-cd your-project
-speclore setup
+speclore verify
 ```
 
-`setup` 会自动检测项目中的 AI 工具（Cursor / Qoder / Claude Code），创建 `.speclore/config.yaml`，写入 MCP 配置，并生成规则文件。
-
-### Step 3 — 配置 MCP
-
-**npm 全局安装**：`setup` 已自动写入 MCP 配置，无需手动操作。
-
-**git clone 本地开发**：在 AI 客户端的 MCP 配置文件中手动添加：
-
-```json
-// .cursor/mcp.json 或 .qoder/mcp.json
-{
-  "mcpServers": {
-    "speclore": {
-      "command": "node",
-      "args": ["/path/to/speclore/dist/mcp/server.js"]
-    }
-  }
-}
-```
-
-### Step 4 — 配置测试命令
-
-验收前需编辑 `.speclore/config.yaml`，设置测试命令和映射规则：
-
-```yaml
-verify:
-  command: "pnpm test"           # 你的测试命令
-  mapping:
-    patterns:
-      - feature: "specs/{module}/{name}.feature"
-        test: "tests/{module}/{name}.test.*"
-```
-
-### Step 5 — 开始工作流
-
-现在可以通过 AI 客户端或 CLI 开始使用了。完整工作流见下方[工作流章节](#工作流)。
+就这么简单。也可以在 AI 客户端（Cursor / Qoder / Claude Code）中用自然语言完成整个流程 — `setup` 已自动配置好 MCP。
 
 ---
 
 ## 工作流
 
-SpecLore 的工作流是一个有状态的流水线：**需求 → 约束 → 编码 → 验收**。
-每个步骤由一个 MCP 工具驱动，工具之间通过项目状态文件（`.speclore/state.yaml`）串联。
-
-### 工作流全景
-
-| 步骤 | MCP 工具 | 输入 | 输出 | 状态变化 |
-|------|---------|------|------|----------|
-| 1. 查看状态 | `speclore.status` | — | 项目状态 + 推荐操作 | — |
-| 2. 生成需求 | `speclore.spec` | 需求文本 | .feature 文件 | → specified |
-| 3. 生成约束 | `speclore.code` | .feature 文件 | 约束规则 + 测试骨架 | → constrained |
-| 4. 编码实现 | AI 客户端 | 约束规则（自动加载） | 业务代码 + 测试代码 | coding |
-| 5. 运行验收 | `speclore.verify` | .feature 文件 | 验收报告 | → verified |
-
-### 完整示例
-
-以下以「患者注册功能」为例，演示完整工作流。
-
-**Step 1 — 查看项目状态**
-
-对 AI 说：
-
-> "查看 SpecLore 项目状态"
-
-AI 调用 `speclore.status`，返回：
-
-```json
-{
-  "project": { "initialized": true, "testCommand": "pnpm test", "aiToolsDetected": ["qoder"] },
-  "features": [],
-  "summary": { "total": 0 },
-  "recommendedActions": ["Call speclore.spec with your requirement to create feature files"]
-}
+```
+speclore.status → speclore.spec → speclore.code → (AI 编码) → speclore.verify
+   查看状态        生成 feature    生成约束+骨架      实现代码      验收测试
+     ↓                ↓               ↓               ↓              ↓
+   项目状态      → specified     → constrained     → coding     → verified
 ```
 
-**Step 2 — 生成需求**
+每个工具调用后返回当前状态和下一步指引，乱序调用自动报错：
 
-> "帮我把这个需求生成 feature 文件：患者注册需要手机号验证，支持微信一键登录"
+| 乱序场景 | 报错信息 |
+|---------|---------|
+| 没有 .feature 就调 `code` | `No .feature files found. Run speclore.spec first.` |
+| 没有测试骨架就调 `verify` | `No test scaffolding. Run speclore.code first.` |
+| 项目未初始化 | 自动创建 `.speclore/config.yaml` |
 
-AI 调用 `speclore.spec`，返回：
+---
 
-```json
-{
-  "createdFiles": ["specs/patient/register.feature"],
-  "scenarios": [
-    { "feature": "患者注册", "name": "手机号注册成功", "given": [...], "when": [...], "then": [...] },
-    { "feature": "患者注册", "name": "手机号格式错误", "given": [...], "when": [...], "then": [...] }
-  ],
-  "workflow": {
-    "feature": "specs/patient/register.feature",
-    "currentState": "specified",
-    "nextStep": "Call speclore.code to generate constraints and test scaffolding."
-  }
-}
+## 示例
+
+以「患者注册」为例，在 AI 客户端中的完整对话：
+
+**你**：帮我实现患者注册功能，需要手机号验证
+
+**AI**（自动调用 `speclore.spec`）：已生成 `specs/patient/register.feature`，包含 3 个验收场景：
+- 手机号注册成功
+- 手机号格式错误时拒绝
+- 重复手机号时提示冲突
+
+**AI**（自动调用 `speclore.code`）：已生成编码约束和测试骨架：
+- `.qoder/rules/speclore.md` — 编码约束（含业务规则）
+- `tests/patient/register.test.ts` — 测试骨架（3 个 `it.skip`）
+
+**你**：好的，我来实现代码和测试
+
+*（AI 编码时自动读取约束规则，你填充测试骨架中的 `it.skip`）*
+
+**你**：运行验收
+
+**AI**（调用 `speclore.verify`）：✅ 3/3 场景通过 (100%)
+
+---
+
+## 支持的输入格式
+
+Markdown · Word · Excel · PDF · 图片 (OCR) · URL · 直接文本
+
+```bash
+speclore spec requirements.md          # Markdown
+speclore spec design.docx              # Word
+speclore spec specs.xlsx               # Excel
+speclore spec mockup.png               # 图片
+speclore spec https://jira.example/123 # URL
+speclore spec "用户需要能重置密码"       # 直接文本
 ```
 
-生成了 `specs/patient/register.feature`，状态变为 `specified`。
+## 命令速查
 
-**Step 3 — 生成约束 + 测试骨架**
-
-AI 自动调用 `speclore.code`，返回：
-
-```json
-{
-  "writtenFiles": [".qoder/rules/speclore.md"],
-  "scaffoldFiles": [
-    { "testFile": "tests/patient/register.test.ts", "framework": "vitest", "scenarios": 3 }
-  ],
-  "workflow": {
-    "feature": "specs/patient/register.feature",
-    "currentState": "constrained",
-    "nextStep": "Start coding. Constraints and test scaffolding are ready. Fill in test implementations."
-  }
-}
-```
-
-新增了：
-- `.qoder/rules/speclore.md` — 包含模块边界 + feature 业务规则的编码约束
-- `tests/patient/register.test.ts` — 测试骨架文件（`it.skip` 占位）
-
-**Step 4 — 编码实现**
-
-AI 编码时自动读取约束规则（`.qoder/rules/speclore.md`），了解模块边界和业务规则。用户填充测试骨架中的 `it.skip` 为真实测试实现。
-
-**Step 5 — 运行验收**
-
-> "运行验收"
-
-AI 调用 `speclore.verify`，返回：
-
-```json
-{
-  "summary": "3/3 scenarios passed (100%)",
-  "passed": 3,
-  "failed": 0,
-  "unmapped": 0,
-  "workflow": {
-    "feature": "specs/patient/register.feature",
-    "currentState": "verified",
-    "nextStep": "All features verified. Add new requirements with speclore.spec."
-  }
-}
-```
-
-### 流程强约束
-
-乱序调用会返回明确错误和正确指引：
-
-| 场景 | 结果 |
+| 命令 | 用途 |
 |------|------|
-| 调 `speclore.code` 但没有 .feature 文件 | 返回错误："No .feature files found. Run speclore.spec first." |
-| 调 `speclore.verify` 但没有测试骨架 | 返回错误："No test scaffolding. Run speclore.code first." |
-| 调任何工具但项目未初始化 | 自动创建 `.speclore/config.yaml` 并提示配置 |
+| `speclore` | 显示项目状态 |
+| `speclore setup` | 初始化项目（检测 AI 工具 → 写入 MCP 配置 → 生成规则） |
+| `speclore spec <source>` | 需求来源 → `.feature` 验收标准 |
+| `speclore code` | `.feature` → AI 编码约束 + 测试骨架 |
+| `speclore verify` | 运行测试 → 验收报告（映射到 .feature 场景） |
+| `speclore verify --watch` | 监听模式，文件变化自动重跑验收 |
+| `speclore status` | 查看项目状态、工作流进度、推荐操作 |
+| `speclore migrate` | 升级后迁移已有 .feature 文件到工作流状态 |
+| `speclore init` | 扫描项目结构，生成上下文文件 |
+| `speclore teardown` | 卸载清理 |
+
+## MCP 工具
+
+SpecLore 提供 4 个 MCP 工具，AI 客户端通过 MCP 协议直接调用：
+
+| 工具 | 用途 | 状态变化 |
+|------|------|---------|
+| `speclore.status` | 项目状态 + 推荐操作 | — |
+| `speclore.spec` | 需求 → .feature | → `specified` |
+| `speclore.code` | .feature → 约束 + 测试骨架 | → `constrained` |
+| `speclore.verify` | 测试 → 验收报告 | → `verified` |
+
+每个工具响应包含 `workflow` 字段（`currentState` + `nextStep`），引导 AI 按正确顺序推进。
+
+## 支持的 AI 客户端
+
+| 客户端 | 配置文件 | 约束规则文件 |
+|--------|---------|-------------|
+| Cursor | `.cursor/mcp.json` | `.cursor/rules/speclore.mdc` |
+| Claude Code | `.mcp.json` | `.claude/rules/speclore.md` |
+| Qoder | `.qoder/mcp.json` | `.qoder/rules/speclore.md` |
+
+`speclore setup` 自动检测并配置。
 
 ---
 
-## 使用手册
+## 配置
 
-### 三层交互模型
+`setup` 生成的 `.speclore/config.yaml` 核心配置：
 
-| 层级 | 用户类型 | 交互方式 | 示例 |
-|------|---------|---------|------|
-| **Layer 1** | 小白 | 跟 AI 说话 | "把这个需求变成 feature 文件" |
-| **Layer 2** | 普通用户 | CLI 命令 | `speclore spec requirements.md` |
-| **Layer 3** | 进阶用户 | CLI + 配置 | `speclore verify --impact --watch` |
-
-### 命令参考
-
-#### `speclore`（智能模式）
-
-无参数运行时自动显示项目状态；带文本参数时直接生成 feature。
-
-```bash
-speclore                           # 显示项目状态
-speclore "用户注册需要邮箱验证"      # 一句话生成 feature
+```yaml
+verify:
+  command: "pnpm test"              # 你的测试命令
+  mapping:
+    patterns:
+      - feature: "specs/{module}/{name}.feature"
+        test: "tests/{module}/{name}.test.*"
 ```
 
-#### `speclore setup [--global]`
-
-一次性项目配置。检测 AI 工具 → 写入 MCP 配置 → 生成规则文件。
-
-```bash
-speclore setup            # 项目级配置
-speclore setup --global   # 全局配置（~/.speclore/）
-```
-
-#### `speclore init`
-
-初始化项目上下文。扫描项目结构 → 检测模块 → 生成 `.speclore/context.json`。
-
-```bash
-speclore init
-```
-
-#### `speclore status`
-
-显示项目诊断状态：配置、上下文、feature 文件、AI 工具检测、工作流状态和推荐操作。
-
-```bash
-speclore status
-```
-
-#### `speclore spec <source>`
-
-需求来源 → .feature 文件。支持文件路径、URL、直接文本。
-
-```bash
-speclore spec requirements.md           # Markdown 文件
-speclore spec https://jira.example.com/issue/PROJ-123  # URL
-speclore spec "用户需要能够重置密码"      # 直接文本
-speclore spec design.docx               # Word 文档
-speclore spec specs.xlsx                # Excel 表格
-speclore spec mockup.png                # 图片（OCR）
-speclore spec req.pdf                   # PDF 文档
-speclore spec requirements.md -m order  # 指定目标模块
-```
-
-#### `speclore code [features...]`
-
-将 .feature 文件转化为 AI 编码约束。
-
-```bash
-speclore code                          # 处理所有 feature
-speclore code specs/order/create.feature  # 处理指定 feature
-```
-
-#### `speclore verify [features...] [--impact] [--watch] [--timeout <min>]`
-
-运行测试并映射结果到 .feature 场景。
-
-```bash
-speclore verify                       # 运行所有验证
-speclore verify --impact              # 含变更影响分析
-speclore verify --watch               # 监听模式（文件变化自动重跑）
-speclore verify --watch --timeout 60  # 监听 60 分钟
-```
-
-#### `speclore teardown [--global]`
-
-卸载清理，移除 SpecLore 配置和生成文件。
-
-```bash
-speclore teardown            # 清理项目级配置
-speclore teardown --global   # 清理全局配置
-```
-
----
-
-## 配置说明
-
-### config.yaml 完整参考
-
-配置文件位于 `.speclore/config.yaml`：
+<details>
+<summary>完整配置参考</summary>
 
 ```yaml
 project:
-  name: my-project          # 项目名称
-  language: typescript       # 项目语言
-  framework: nestjs          # 框架
+  name: my-project
   profile: normal            # strict | normal | minimal
   modules:
     order:
       path: src/order
-      responsibility: 订单管理与处理
+      responsibility: 订单管理
       dependsOn: [inventory, payment]
-      entities: [Order, OrderItem]
-      apis: [createOrder, getOrder]
 
 ai:
   provider: openai-compatible  # openai-compatible | claude | ollama
   baseUrl: https://api.openai.com/v1
   model: gpt-4
-  apiKeyEnv: OPENAI_API_KEY   # 环境变量名
+  apiKeyEnv: OPENAI_API_KEY
 
 spec:
-  outputDir: specs            # .feature 输出目录
-  defaultLanguage: zh-CN      # 默认语言
-  confidenceThreshold: 0.6    # 低于此值标记 needsReview
+  outputDir: specs
+  defaultLanguage: zh-CN
+  confidenceThreshold: 0.6
 
 verify:
-  command: npm test           # 测试命令
-  timeout: 300                # 超时（秒）
-  reportFormat: [json, html]  # 报告格式
+  command: npm test
+  timeout: 300
+  reportFormat: [json, html]
   mapping:
     patterns:
       - feature: "specs/{module}/{name}.feature"
         test: "tests/{module}/{name}.test.*"
-
-plugins:
-  readers: []
-  writers: []
-  parsers: []
 ```
 
-### Profile 模式
-
-| Profile | 适用场景 | 约束粒度 |
-|---------|---------|---------|
-| **strict** | 生产环境、多人协作 | 完整 ModuleRule + 命名规范 + 禁止模式 |
-| **normal** | 日常开发（默认） | 核心模块边界 + 基本规范 |
-| **minimal** | 原型开发、个人项目 | 基础模块边界 |
-
----
-
-## 测试映射
-
-### 映射文件（推荐）
-
-AI 生成测试代码时同时生成映射文件 `.speclore/mappings/{module}/{feature}.json`：
-
-```json
-{
-  "feature": "specs/order/create.feature",
-  "generatedAt": "2024-01-15T10:30:00Z",
-  "scenarios": {
-    "创建有效订单": {
-      "testFile": "tests/order/create.test.ts",
-      "testMethod": "should create order with valid items"
-    },
-    "库存不足时拒绝": {
-      "testFile": "tests/order/create.test.ts",
-      "testMethod": "should reject when inventory is insufficient"
-    }
-  }
-}
-```
-
-### 显式标记（降级）
-
-在测试文件中添加 `@speclore-scenario` 注释标记：
-
-```typescript
-// @speclore-scenario: 创建有效订单
-it('should create order with valid items', () => { ... });
-```
-
-### 映射优先级
-
-```
-映射文件 → 显式标记 → unmapped
-```
-
----
-
-## 插件开发
-
-### 插件类型
-
-| 类型 | 接口 | 用途 |
-|------|------|------|
-| **ReaderPlugin** | `{ name, supportedFormats[], canRead(), read() }` | 自定义需求来源解析 |
-| **WriterPlugin** | `{ toolName, configFile, detect(), write(), remove() }` | 自定义 AI 工具约束输出 |
-| **ParserPlugin** | `{ framework, canParse(), parse() }` | 自定义测试结果解析 |
-
-### 开发指南
-
-```typescript
-// 1. 创建插件
-import type { ReaderPlugin, StructuredRequirement } from 'speclore';
-
-export class ConfluenceReader implements ReaderPlugin {
-  readonly name = 'confluence-reader';
-  readonly supportedFormats = ['confluence-url'];
-
-  canRead(source: string): boolean {
-    return source.includes('atlassian.net/wiki');
-  }
-
-  async read(source: string): Promise<StructuredRequirement[]> {
-    // Fetch from Confluence API and parse
-    // ...
-  }
-}
-
-// 2. 发布为 npm 包
-// 3. 在 config.yaml 中注册
-// plugins:
-//   readers:
-//     - name: confluence-reader
-//       package: speclore-confluence-reader
-```
-
----
-
-## MCP 工具参考
-
-SpecLore 提供 4 个 MCP 工具，按工作流顺序使用：
-
-> `speclore.status` → `speclore.spec` → `speclore.code` → `speclore.verify`
-
-每个工具返回的 `workflow` 字段包含当前状态和推荐下一步操作。
-
-### `speclore.status`
-
-查看项目工作流状态、feature 状态分布和推荐操作。
-
-**输入**:
-```json
-{
-  "feature": "specs/auth/register.feature"  // 可选，不填则返回全部
-}
-```
-
-**输出**:
-```json
-{
-  "project": { "initialized": true, "configCreated": false, "testCommand": "pnpm test", "aiToolsDetected": ["qoder"] },
-  "features": [
-    { "file": "specs/auth/register.feature", "state": "constrained", "scenarios": 3, "constraintFiles": [".qoder/rules/speclore.md"], "testFiles": ["tests/auth/register.test.ts"] }
-  ],
-  "summary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 },
-  "recommendedActions": ["Fill in test scaffolding implementations, then start coding."]
-}
-```
-
-### `speclore.spec`
-
-需求 → .feature 文件。
-
-**输入**:
-```json
-{
-  "source": "用户注册需要邮箱验证，密码至少 8 位",
-  "module": "auth"
-}
-```
-
-**输出**:
-```json
-{
-  "createdFiles": ["specs/auth/register.feature"],
-  "scenarios": [
-    {
-      "feature": "用户注册",
-      "name": "有效邮箱注册成功",
-      "given": ["系统已启动"],
-      "when": ["用户提供有效邮箱和密码提交注册"],
-      "then": ["系统创建账户并发送验证邮件"]
-    }
-  ],
-  "constraints": "已生成 1 个 feature 文件，共 3 个场景。",
-  "nextSteps": "运行 `speclore code` 生成 AI 编码约束。",
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "specified",
-    "nextStep": "Call speclore.code to generate constraints and test scaffolding.",
-    "projectSummary": { "total": 1, "specified": 1, "constrained": 0, "coding": 0, "verified": 0 }
-  }
-}
-```
-
-### `speclore.code`
-
-.feature → AI 编码约束。
-
-**输入**:
-```json
-{
-  "features": ["specs/auth/register.feature"],
-  "tools": ["cursor", "claude"]
-}
-```
-
-**输出**:
-```json
-{
-  "writtenFiles": [".cursor/rules/speclore.mdc", ".claude/rules/speclore.md"],
-  "constraintContent": "2 个模块的约束内容...",
-  "moduleRules": [...],
-  "activeConstraints": [...],
-  "codingGuidance": "项目: my-app. 语言: TypeScript...",
-  "scaffoldFiles": [
-    { "testFile": "tests/auth/register.test.ts", "framework": "vitest", "scenarios": 3 }
-  ],
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "constrained",
-    "nextStep": "Start coding. Constraints and test scaffolding are ready.",
-    "projectSummary": { "total": 1, "specified": 0, "constrained": 1, "coding": 0, "verified": 0 }
-  }
-}
-```
-
-### `speclore.verify`
-
-测试运行 → 验收报告。
-
-**输入**:
-```json
-{
-  "features": ["specs/auth/register.feature"],
-  "impact": false
-}
-```
-
-**输出**:
-```json
-{
-  "summary": "5/5 scenarios passed (100%)",
-  "passed": 5,
-  "failed": 0,
-  "unmapped": 0,
-  "details": [...],
-  "failedDetails": [],
-  "workflow": {
-    "feature": "specs/auth/register.feature",
-    "currentState": "verified",
-    "nextStep": "All features verified. Add new requirements with speclore.spec.",
-    "projectSummary": { "total": 1, "specified": 0, "constrained": 0, "coding": 0, "verified": 1 }
-  }
-}
-```
-
----
-
-## 支持的 AI 客户端
-
-| 客户端 | 状态 | 配置文件 |
-|--------|------|----------|
-| Cursor | v1 内置 | `.cursor/mcp.json` + `.cursor/rules/speclore.mdc` |
-| Claude Code | v1 内置 | `.mcp.json` + `.claude/rules/speclore.md` |
-| Qoder | v1 内置 | `.qoder/mcp.json` + `.qoder/rules/speclore.md` |
-| Copilot / Windsurf / Cline / Gemini CLI / Trae / AGENTS.md | 社区贡献 | — |
+</details>
 
 ---
 
 ## 技术架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     CLI / MCP Server                     │
-├──────────┬──────────┬──────────┬──────────┬─────────────┤
-│  M1      │  M2      │  M3      │  M4      │  M5         │
-│ 需求摄入  │ Feature  │ 约束编码  │ 验收验证  │ 上下文引擎   │
-│          │ 生成     │          │          │             │
-├──────────┴──────────┴──────────┴──────────┴─────────────┤
-│                    M7 高级分析（RDG/CDG/Impact）           │
-├─────────────────────────────────────────────────────────┤
-│              AI Provider (OpenAI / Claude / Ollama)       │
-├─────────────────────────────────────────────────────────┤
-│              Plugin System (Reader / Writer / Parser)     │
-├─────────────────────────────────────────────────────────┤
-│              Infrastructure (Config / Logger / FileLock)  │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                  CLI / MCP Server                      │
+├──────────┬──────────┬──────────┬──────────┬──────────┤
+│ 需求摄入  │ Feature  │ 约束编码  │ 验收验证  │ 上下文引擎 │
+│ (M1)     │ 生成(M2) │ (M3)     │ (M4)     │ (M5)     │
+├──────────┴──────────┴──────────┴──────────┴──────────┤
+│          状态管理器 · 测试骨架生成 · 变更影响分析          │
+├──────────────────────────────────────────────────────┤
+│          AI Provider (OpenAI / Claude / Ollama)        │
+├──────────────────────────────────────────────────────┤
+│          Plugin System (Reader / Writer / Parser)      │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 开发
 
-### 本地开发
-
 ```bash
 git clone https://github.com/cheneyzhang93/speclore.git
-cd speclore
-pnpm install
-pnpm dev        # watch 模式开发
-pnpm test       # 运行测试
-pnpm build      # 构建
+cd speclore && pnpm install && pnpm build
+pnpm test       # 333 tests
+pnpm dev        # watch 模式
 ```
-
-### 贡献指南
-
-1. Fork 本仓库
-2. 创建功能分支：`git checkout -b feature/my-feature`
-3. 提交更改：`git commit -am 'Add my feature'`
-4. 推送：`git push origin feature/my-feature`
-5. 提交 Pull Request
-
----
 
 ## License
 
