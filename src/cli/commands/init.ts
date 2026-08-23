@@ -15,7 +15,7 @@ import { buildContext, writeContextFile } from '../../core/context-engine/index.
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Initialize project: scan structure, detect modules, generate context.json')
+    .description('Scan project structure and generate context.json (optional — auto-runs on first spec/code call)')
     .option('-v, --verbose', 'Enable debug logging')
     .action((opts: { verbose?: boolean }) => {
       if (opts.verbose) logger.setLevel('debug');

@@ -30,24 +30,35 @@ hero:
 
 <div class="home-cta">
 
-## Zero to Acceptance in Three Steps
+## Three Ways to Use SpecLore
+
+| Approach | Best for | Core experience |
+|----------|----------|----------------|
+| **CLI** | Terminal-oriented developers | Manual commands, full control |
+| **MCP + AI Client** (Recommended) | Cursor / Qoder / Claude Code users | Natural language conversation, AI handles the full pipeline |
+| **Hybrid** | Best of both worlds | CLI for setup, AI client for the rest |
+
+### Quick Try
 
 ```bash
-# 1. Initialize your project
+# 1. Initialize your project (once)
 cd your-project && speclore setup
 
-# 2. Generate .feature acceptance criteria from requirements
+# 2. Generate acceptance criteria from requirements
 speclore spec "Patient registration requires phone verification"
 
-# 3. Generate AI coding constraints + test scaffolding
+# 3. Generate coding constraints + test scaffolding
 speclore code
-```
 
-Code in your AI client, then run acceptance:
-
-```bash
+# 4. Run acceptance after coding
 speclore verify
 ```
+
+Or, complete the entire workflow using natural language in your AI client — `setup` already configured MCP automatically.
+
+::: tip Next step
+Check the [Getting Started](/en/guide/getting-started) guide for the full tutorial on all three approaches.
+:::
 
 ---
 

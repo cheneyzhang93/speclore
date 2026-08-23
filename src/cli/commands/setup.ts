@@ -59,9 +59,20 @@ export function registerSetupCommand(program: Command): void {
       writeRuleFiles(projectRoot, tools);
 
       logger.info('');
-      logger.info('Setup complete! You can now:');
-      logger.info('  • Run `speclore init` to initialize project context');
-      logger.info('  • Or just start talking to your AI client about requirements');
+      logger.info('Setup complete! Next steps:');
+      logger.info('');
+      logger.info('  Option A — CLI workflow (terminal users):');
+      logger.info('    speclore spec "your requirement"   → generate .feature');
+      logger.info('    speclore code                      → generate constraints + tests');
+      logger.info('    speclore verify                    → run acceptance');
+      logger.info('');
+      logger.info('  Option B — AI client workflow (recommended):');
+      logger.info('    Open Cursor / Qoder / Claude Code and start chatting.');
+      logger.info('    MCP is already configured — AI handles the full pipeline.');
+      logger.info('');
+      logger.info('  Optional — Pre-scan project context:');
+      logger.info('    speclore init   → scan modules/entities/APIs for better AI context');
+      logger.info('    (Not required — context is auto-built on first spec/code call)');
     });
 }
 

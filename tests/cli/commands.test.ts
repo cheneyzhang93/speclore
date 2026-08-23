@@ -133,7 +133,7 @@ describe('CLI — init command', () => {
   it('should have a description', () => {
     const program = createProgram();
     const init = program.commands.find(c => c.name() === 'init');
-    expect(init?.description()).toContain('Initialize');
+    expect(init?.description()).toContain('Scan project structure');
   });
 });
 
