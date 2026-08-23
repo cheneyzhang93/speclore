@@ -52,7 +52,15 @@ yarn-error.log*
 # ===== pnpm =====
 .pnpm-store/
 
+# ===== Docs (VitePress) =====
+docs/.vitepress/dist
+docs/.vitepress/cache
+docs/node_modules/
+
 # ===== Temporary Files =====
 tmp/
 temp/
 *.tmp
+
+# ===== Screenshots =====
+screenshot*.png

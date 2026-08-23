@@ -1,0 +1,73 @@
+/* ── 品牌色 ─────────────────────────────────────── */
+:root {
+  --vp-c-brand-1: #2d8f6f;
+  --vp-c-brand-2: #247a5c;
+  --vp-c-brand-3: #1e6549;
+  --vp-c-brand-soft: rgba(45, 143, 111, 0.14);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #2d8f6f 0%, #4ecdc4 100%);
+  --vp-home-hero-image-filter: none;
+}
+
+/* ── 暗色模式品牌色微调 ────────────────────────── */
+.dark {
+  --vp-c-brand-1: #4ecdc4;
+  --vp-c-brand-2: #3dbdb5;
+  --vp-c-brand-3: #2d8f6f;
+  --vp-c-brand-soft: rgba(78, 205, 196, 0.16);
+}
+
+/* ── 首页布局 ──────────────────────────────────── */
+.VPHome {
+  padding-bottom: 2rem;
+}
+
+/* Hero image 动画 */
+.VPHero .image-src {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* ── 首页自定义区块间距 ────────────────────────── */
+.vp-doc > div > :first-child {
+  margin-top: 0;
+}
+
+/* 首页各区块间距 */
+.vp-doc > div > h2 {
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+/* 底部 CTA 区域 */
+.home-cta {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.home-cta h2 {
+  font-size: 1.5rem;
+}
+
+/* ── 导航栏微调 ────────────────────────────────── */
+.VPNavBar {
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+/* ── 代码块美化 ────────────────────────────────── */
+.vp-doc div[class*='language-'] {
+  border-radius: 10px;
+}
+
+/* ── 侧边栏活跃项 ──────────────────────────────── */
+.VPSidebarItem.is-active > .item .link {
+  background-color: var(--vp-c-brand-soft);
+  border-radius: 6px;
+}
+
+/* ── 平滑滚动 ──────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
