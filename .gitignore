@@ -12,7 +12,9 @@ coverage/
 .nyc_output/
 
 # ===== Runtime Artifacts =====
+.mcp.json
 .speclore/.lock
+.speclore/config.yaml
 .speclore/context.json
 .speclore/state.yaml
 .speclore/reports/
