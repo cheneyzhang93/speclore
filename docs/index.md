@@ -30,15 +30,7 @@ hero:
 
 <div class="home-cta">
 
-## 三种使用方式，任选其一
-
-| 方式 | 适合谁 | 核心体验 |
-|------|--------|---------|
-| **CLI 命令行** | 习惯终端的开发者 | 手动执行命令，完全掌控 |
-| **MCP + AI 客户端**（推荐） | Cursor / Qoder / Claude Code 用户 | 自然语言对话，AI 完成全流程 |
-| **混合使用** | 两者都想要 | CLI 初始化 + AI 编码 |
-
-### 快速体验
+## 5 分钟跑通
 
 ```bash
 # 1. 初始化项目（只需一次）
@@ -54,10 +46,10 @@ speclore code
 speclore verify
 ```
 
-或者，在 AI 客户端中用自然语言完成全部流程 — `setup` 已自动配置好 MCP。
+或者在 AI 客户端中用自然语言完成全部流程 — `setup` 已自动配置好 MCP。
 
-::: tip 下一步
-查看 [快速开始](/guide/getting-started) 了解三种方式的完整教程。
+::: tip 完整教程
+查看 [快速开始](/guide/getting-started) 了解 CLI、MCP + AI 客户端、混合使用三种方式的详细教程。
 :::
 
 ---

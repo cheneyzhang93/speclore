@@ -30,15 +30,7 @@ hero:
 
 <div class="home-cta">
 
-## Three Ways to Use SpecLore
-
-| Approach | Best for | Core experience |
-|----------|----------|----------------|
-| **CLI** | Terminal-oriented developers | Manual commands, full control |
-| **MCP + AI Client** (Recommended) | Cursor / Qoder / Claude Code users | Natural language conversation, AI handles the full pipeline |
-| **Hybrid** | Best of both worlds | CLI for setup, AI client for the rest |
-
-### Quick Try
+## Run in 5 Minutes
 
 ```bash
 # 1. Initialize your project (once)
@@ -54,10 +46,10 @@ speclore code
 speclore verify
 ```
 
-Or, complete the entire workflow using natural language in your AI client — `setup` already configured MCP automatically.
+Or complete the entire workflow using natural language in your AI client — `setup` already configured MCP automatically.
 
-::: tip Next step
-Check the [Getting Started](/en/guide/getting-started) guide for the full tutorial on all three approaches.
+::: tip Full tutorial
+Check [Getting Started](/en/guide/getting-started) for detailed tutorials on CLI, MCP + AI Client, and Hybrid approaches.
 :::
 
 ---
