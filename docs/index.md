@@ -1,7 +1,6 @@
 ---
 layout: home
 hero:
-  layout: center
   name: SpecLore
   text: AI 编码时代的产研协同工具
   tagline: 把需求变成可验收的 BDD 规格，把验收变成自动化流水线
@@ -12,6 +11,9 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/cheneyzhang93/speclore
+  image:
+    src: /hero-terminal.svg
+    alt: SpecLore 终端截图
 ---
 
 <InstallTabs />
