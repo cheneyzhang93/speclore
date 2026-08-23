@@ -30,30 +30,8 @@ hero:
 
 <div class="home-cta">
 
-## 5 分钟跑通
+## 开源免费
 
-```bash
-# 1. 初始化项目（只需一次）
-cd your-project && speclore setup
-
-# 2. 从需求生成验收标准
-speclore spec "患者注册需要手机号验证"
-
-# 3. 生成编码约束 + 测试骨架
-speclore code
-
-# 4. 编码后运行验收
-speclore verify
-```
-
-或者在 AI 客户端中用自然语言完成全部流程 — `setup` 已自动配置好 MCP。
-
-::: tip 完整教程
-查看 [快速开始](/guide/getting-started) 了解 CLI、MCP + AI 客户端、混合使用三种方式的详细教程。
-:::
-
----
-
-**SpecLore** 是基于 MIT 许可的开源项目。由 [Cheney](https://github.com/cheneyzhang93) 创建。
+SpecLore 基于 MIT 许可开源，由 [Cheney](https://github.com/cheneyzhang93) 创建。
 
 </div>

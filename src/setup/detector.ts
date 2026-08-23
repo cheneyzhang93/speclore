@@ -23,8 +23,9 @@ export function detectAITools(projectRoot: string): AIToolInfo[] {
     configFiles: cursorConfigs,
   });
 
-  // Claude Code
-  const claudeFiles = ['.claude/', '.mcp.json', 'CLAUDE.md'];
+  // Claude Code — .mcp.json is NOT a reliable indicator because SpecLore itself writes it.
+  // Only .claude/ and CLAUDE.md are genuine Claude Code markers.
+  const claudeFiles = ['.claude/', 'CLAUDE.md'];
   const claudeConfigs = claudeFiles.filter(f => existsSync(join(projectRoot, f)));
   tools.push({
     tool: 'claude',

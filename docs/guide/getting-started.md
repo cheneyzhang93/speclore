@@ -89,11 +89,11 @@ specs/patient/register.feature
 
 确保你的 AI 客户端（Cursor / Qoder / Claude Code）已经打开当前项目。这一步很重要，因为 `setup` 需要检测到客户端的目录才能写入 MCP 配置：
 
-| AI 客户端 | 需要存在的目录 | 写入的配置文件 |
-|-----------|--------------|---------------|
-| Cursor | `.cursor/` | `.cursor/mcp.json` |
-| Qoder | `.qoder/` | `.qoder/mcp.json` |
-| Claude Code | 无需前置 | `.mcp.json`（项目根目录） |
+| AI 客户端 | 需要存在的检测标志 | 写入的配置文件 |
+|-----------|----------------|---------------|
+| Cursor | `.cursor/` 目录 | `.cursor/mcp.json` |
+| Qoder | `.qoder/` 目录 | `.qoder/mcp.json` |
+| Claude Code | `.claude/` 目录或 `CLAUDE.md` | `.mcp.json`（项目根目录） |
 
 **第二步：运行 setup**
 
@@ -102,6 +102,18 @@ cd your-project && speclore setup
 ```
 
 `setup` 会自动检测已打开的 AI 客户端，并将 SpecLore MCP 服务器写入对应的配置文件。你**不需要手动编辑任何 MCP 配置**。
+
+::: tip 未检测到你的 AI 客户端？
+如果 `setup` 未检测到你的 AI 工具，可以手动配置：
+
+```bash
+speclore mcp add cursor   # 为 Cursor 写入 MCP 配置（自动创建 .cursor/）
+speclore mcp add claude   # 为 Claude Code 写入 MCP 配置
+speclore mcp add qoder    # 为 Qoder 写入 MCP 配置（自动创建 .qoder/）
+speclore mcp list         # 查看所有客户端的 MCP 配置状态
+```
+
+:::
 
 **第三步：重启 AI 客户端**
 

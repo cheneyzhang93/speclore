@@ -20,13 +20,13 @@ export function detectAITools(projectRoot: string): AITool[] {
     logger.debug('Detected Cursor (.cursor/)');
   }
 
+  // .mcp.json is NOT a reliable Claude indicator — SpecLore itself writes it.
   if (
     existsSync(join(projectRoot, '.claude')) ||
-    existsSync(join(projectRoot, 'CLAUDE.md')) ||
-    existsSync(join(projectRoot, '.mcp.json'))
+    existsSync(join(projectRoot, 'CLAUDE.md'))
   ) {
     tools.push('claude');
-    logger.debug('Detected Claude Code (.claude/ or CLAUDE.md or .mcp.json)');
+    logger.debug('Detected Claude Code (.claude/ or CLAUDE.md)');
   }
 
   if (existsSync(join(projectRoot, '.qoder'))) {

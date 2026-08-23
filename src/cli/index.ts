@@ -24,6 +24,7 @@ import { registerCodeCommand } from './commands/code.js';
 import { registerVerifyCommand } from './commands/verify.js';
 import { registerTeardownCommand } from './commands/teardown.js';
 import { registerMigrateCommand } from './commands/migrate.js';
+import { registerMcpConfigCommands } from './commands/mcp-config.js';
 import { VERSION } from '../version.js';
 
 export function createProgram(): Command {
@@ -46,7 +47,7 @@ export function createProgram(): Command {
   registerTeardownCommand(program);
   registerMigrateCommand(program);
 
-  // MCP server sub-command
+  // MCP server sub-command + manual MCP management sub-commands
   program
     .command('mcp')
     .description('Start MCP server (stdio transport) for AI tool integration')
@@ -54,6 +55,9 @@ export function createProgram(): Command {
       const { startMcpServer } = await import('../mcp/server.js');
       await startMcpServer();
     });
+
+  // Attach `mcp add/remove/list` to the mcp command
+  registerMcpConfigCommands(program);
 
   // Smart mode: `speclore` with no sub-command
   program

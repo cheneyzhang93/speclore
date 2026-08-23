@@ -60,7 +60,7 @@ speclore verify
 
 如果你使用 Cursor、Qoder 或 Claude Code，这是最自然的方式 — 用对话代替命令。
 
-**第一步**：先用 AI 客户端打开项目。`setup` 需要检测到客户端目录才能写入 MCP 配置（Cursor 需要 `.cursor/`，Qoder 需要 `.qoder/`，Claude Code 无需前置）。
+**第一步**：先用 AI 客户端打开项目。`setup` 需要检测到客户端标志才能写入 MCP 配置（Cursor 需要 `.cursor/`，Qoder 需要 `.qoder/`，Claude Code 需要 `.claude/` 或 `CLAUDE.md`）。
 
 **第二步**：在项目目录运行 `speclore setup`，它会自动检测已打开的 AI 客户端并写入 MCP 配置。你**不需要手动编辑任何 MCP 配置**。
 
@@ -153,6 +153,9 @@ SpecLore 可以从任意格式的需求来源生成 `.feature` 文件：
 | `speclore status` | 查看项目状态、工作流进度、推荐操作 |
 | `speclore init` | 扫描项目结构，生成上下文（可选，首次 spec/code 时自动执行） |
 | `speclore migrate` | 升级后迁移已有 .feature 文件到工作流状态 |
+| `speclore mcp add <client>` | 手动为指定客户端写入 MCP 配置（cursor \| claude \| qoder） |
+| `speclore mcp remove <client>` | 手动从指定客户端移除 MCP 配置 |
+| `speclore mcp list` | 查看所有客户端的 MCP 配置状态 |
 | `speclore teardown` | 卸载清理 |
 
 ---
@@ -168,13 +171,23 @@ SpecLore 通过 MCP（Model Context Protocol）为 AI 客户端提供 4 个工�
 | `speclore.code` | .feature → 约束 + 测试骨架 | → `constrained` |
 | `speclore.verify` | 测试 → 验收报告 | → `verified` |
 
-`speclore setup` 会自动检测你使用的 AI 客户端并写入对应的 MCP 配置：
+`speclore setup` 会自动检测已打开的 AI 客户端并写入对应的 MCP 配置（只为实际检测到的客户端写入）：
 
-| AI 客户端 | MCP 配置文件 | 约束规则文件 |
-|-----------|-------------|-------------|
-| Cursor | `.cursor/mcp.json` | `.cursor/rules/speclore.mdc` |
-| Claude Code | `.mcp.json` | `.claude/rules/speclore.md` |
-| Qoder | `.qoder/mcp.json` | `.qoder/rules/speclore.md` |
+| AI 客户端 | 检测标志 | MCP 配置文件 |
+|-----------|---------|-------------|
+| Cursor | `.cursor/` 目录存在 | `.cursor/mcp.json` |
+| Claude Code | `.claude/` 目录或 `CLAUDE.md` 存在 | `.mcp.json`（项目根目录） |
+| Qoder | `.qoder/` 目录存在 | `.qoder/mcp.json` |
+
+**手动配置 MCP**：如果 `setup` 未检测到你的 AI 客户端，可以手动配置：
+
+```bash
+speclore mcp add cursor   # 为 Cursor 写入 MCP 配置（自动创建 .cursor/）
+speclore mcp add claude   # 为 Claude Code 写入 MCP 配置
+speclore mcp add qoder    # 为 Qoder 写入 MCP 配置（自动创建 .qoder/）
+speclore mcp remove qoder # 从 Qoder 移除 MCP 配置
+speclore mcp list         # 查看所有客户端的 MCP 配置状态
+```
 
 每个 MCP 工具响应包含 `workflow` 字段（`currentState` + `nextStep`），引导 AI 按正确顺序推进工作流。
 

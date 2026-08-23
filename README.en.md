@@ -60,7 +60,7 @@ That's it. `setup` runs only once — after that, each new requirement is just `
 
 If you use Cursor, Qoder, or Claude Code, this is the most natural way — conversation replaces commands.
 
-**Step 1**: Open your project in the AI client first. `setup` needs to detect the client's directory before writing MCP config (Cursor requires `.cursor/`, Qoder requires `.qoder/`, Claude Code needs nothing).
+**Step 1**: Open your project in the AI client first. `setup` needs to detect the client's marker before writing MCP config (Cursor requires `.cursor/`, Qoder requires `.qoder/`, Claude Code requires `.claude/` or `CLAUDE.md`).
 
 **Step 2**: Run `speclore setup` in your project directory. It auto-detects your AI client and writes the MCP config. You **don't need to manually edit any MCP config**.
 
@@ -153,6 +153,9 @@ SpecLore generates `.feature` files from any requirement source:
 | `speclore status` | View project state, workflow progress, recommended actions |
 | `speclore init` | Scan project structure, generate context (optional — auto-runs on first spec/code call) |
 | `speclore migrate` | Migrate existing .feature files to workflow state after upgrade |
+| `speclore mcp add <client>` | Manually write MCP config for a specific client (cursor \| claude \| qoder) |
+| `speclore mcp remove <client>` | Manually remove MCP config from a specific client |
+| `speclore mcp list` | Show MCP configuration status for all clients |
 | `speclore teardown` | Uninstall cleanup |
 
 ---
@@ -168,13 +171,23 @@ SpecLore provides 4 MCP tools that AI clients can call directly:
 | `speclore.code` | .feature → constraints + test scaffolding | → `constrained` |
 | `speclore.verify` | Tests → acceptance report | → `verified` |
 
-`speclore setup` auto-detects your AI client and writes the corresponding MCP config:
+`speclore setup` auto-detects your AI client and writes the corresponding MCP config (only for clients actually detected):
 
-| AI Client | MCP Config File | Constraint Rules File |
-|-----------|----------------|----------------------|
-| Cursor | `.cursor/mcp.json` | `.cursor/rules/speclore.mdc` |
-| Claude Code | `.mcp.json` | `.claude/rules/speclore.md` |
-| Qoder | `.qoder/mcp.json` | `.qoder/rules/speclore.md` |
+| AI Client | Detection marker | MCP Config File |
+|-----------|-----------------|----------------|
+| Cursor | `.cursor/` directory exists | `.cursor/mcp.json` |
+| Claude Code | `.claude/` directory or `CLAUDE.md` exists | `.mcp.json` (project root) |
+| Qoder | `.qoder/` directory exists | `.qoder/mcp.json` |
+
+**Manual MCP configuration**: If `setup` did not detect your AI client, configure it manually:
+
+```bash
+speclore mcp add cursor   # Write MCP config for Cursor (auto-creates .cursor/)
+speclore mcp add claude   # Write MCP config for Claude Code
+speclore mcp add qoder    # Write MCP config for Qoder (auto-creates .qoder/)
+speclore mcp remove qoder # Remove MCP config from Qoder
+speclore mcp list         # Show MCP config status for all clients
+```
 
 Every MCP tool response includes a `workflow` field (`currentState` + `nextStep`) to guide the AI through the correct sequence.
 

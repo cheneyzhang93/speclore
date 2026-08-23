@@ -89,11 +89,11 @@ If you use Cursor, Qoder, or Claude Code, you can complete the entire workflow w
 
 Make sure your AI client (Cursor / Qoder / Claude Code) has the current project open. This matters because `setup` needs to detect the client's directory before writing MCP config:
 
-| AI Client | Required directory | Config file written |
-|-----------|-------------------|--------------------|
-| Cursor | `.cursor/` | `.cursor/mcp.json` |
-| Qoder | `.qoder/` | `.qoder/mcp.json` |
-| Claude Code | None needed | `.mcp.json` (project root) |
+| AI Client | Required detection marker | Config file written |
+|-----------|--------------------------|--------------------|
+| Cursor | `.cursor/` directory exists | `.cursor/mcp.json` |
+| Qoder | `.qoder/` directory exists | `.qoder/mcp.json` |
+| Claude Code | `.claude/` directory or `CLAUDE.md` exists | `.mcp.json` (project root) |
 
 **Step 2: Run setup**
 
@@ -102,6 +102,18 @@ cd your-project && speclore setup
 ```
 
 `setup` auto-detects your AI client and writes the SpecLore MCP server into the corresponding config file. You **don't need to manually edit any MCP config**.
+
+::: tip Client not detected?
+If `setup` did not detect your AI tool, configure it manually:
+
+```bash
+speclore mcp add cursor   # Write MCP config for Cursor (auto-creates .cursor/)
+speclore mcp add claude   # Write MCP config for Claude Code
+speclore mcp add qoder    # Write MCP config for Qoder (auto-creates .qoder/)
+speclore mcp list         # Show MCP config status for all clients
+```
+
+:::
 
 **Step 3: Restart the AI client**
 

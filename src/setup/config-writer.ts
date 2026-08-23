@@ -6,28 +6,64 @@
  * @module setup/config-writer
  */
 
-import { writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { detectInstallMethod } from '../infra/install-detector.js';
 import { logger } from '../infra/logger.js';
+import type { AIToolInfo } from '../types/index.js';
 
 /**
- * Write MCP configuration files for all supported AI clients.
+ * Write MCP configuration files for detected AI clients.
+ * Only writes for tools that were actually detected.
  */
-export function writeMcpConfig(projectRoot: string, _globalMode: boolean): void {
+export function writeMcpConfig(projectRoot: string, tools: AIToolInfo[], _globalMode: boolean): void {
   const installInfo = detectInstallMethod(projectRoot);
   const serverCommand = getServerCommand(installInfo);
 
-  // Cursor: .cursor/mcp.json
-  writeCursorMcp(projectRoot, serverCommand);
+  const detectedToolNames = tools.map(t => t.tool);
 
-  // Claude Code: .mcp.json
-  writeClaudeMcp(projectRoot, serverCommand);
+  if (detectedToolNames.includes('cursor')) {
+    writeCursorMcp(projectRoot, serverCommand);
+  }
 
-  // Qoder: .qoder/mcp.json
-  writeQoderMcp(projectRoot, serverCommand);
+  if (detectedToolNames.includes('claude')) {
+    writeClaudeMcp(projectRoot, serverCommand);
+  }
 
-  logger.info('MCP configuration written for all detected AI clients.');
+  if (detectedToolNames.includes('qoder')) {
+    writeQoderMcp(projectRoot, serverCommand);
+  }
+
+  if (detectedToolNames.length > 0) {
+    logger.info(`MCP configuration written for: ${detectedToolNames.join(', ')}`);
+  }
+}
+
+/**
+ * Force-write MCP config for a specific client (used by `mcp add`).
+ * Creates the client directory if it does not exist.
+ */
+export function writeMcpForClient(projectRoot: string, client: 'cursor' | 'claude' | 'qoder'): void {
+  const installInfo = detectInstallMethod(projectRoot);
+  const serverCommand = getServerCommand(installInfo);
+
+  switch (client) {
+    case 'cursor':
+      mkdirSync(join(projectRoot, '.cursor'), { recursive: true });
+      writeCursorMcp(projectRoot, serverCommand);
+      break;
+    case 'claude':
+      // Ensure .claude/ exists so the write guard passes
+      if (!existsSync(join(projectRoot, '.claude'))) {
+        mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+      }
+      writeClaudeMcp(projectRoot, serverCommand);
+      break;
+    case 'qoder':
+      mkdirSync(join(projectRoot, '.qoder'), { recursive: true });
+      writeQoderMcp(projectRoot, serverCommand);
+      break;
+  }
 }
 
 function getServerCommand(installInfo: { mode: string; localPath?: string }): { command: string; args: string[] } {
@@ -39,7 +75,7 @@ function getServerCommand(installInfo: { mode: string; localPath?: string }): { 
   return { command: 'node', args: [join(localPath, 'dist', 'mcp', 'server.js')] };
 }
 
-function writeCursorMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
+export function writeCursorMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
   const mcpDir = join(projectRoot, '.cursor');
   if (!existsSync(mcpDir)) return; // Only write if .cursor exists
 
@@ -57,7 +93,14 @@ function writeCursorMcp(projectRoot: string, serverCmd: { command: string; args:
   logger.info(`  Cursor: ${mcpPath}`);
 }
 
-function writeClaudeMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
+export function writeClaudeMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
+  // Only write when genuine Claude Code markers exist (.claude/ or CLAUDE.md).
+  // .mcp.json is NOT checked because SpecLore itself creates it — checking it
+  // would cause a false-positive loop in non-Claude projects.
+  const hasClaudeDir = existsSync(join(projectRoot, '.claude'));
+  const hasClaudeMd = existsSync(join(projectRoot, 'CLAUDE.md'));
+  if (!hasClaudeDir && !hasClaudeMd) return;
+
   const mcpPath = join(projectRoot, '.mcp.json');
   const existing = readExistingJson(mcpPath);
 
@@ -72,7 +115,7 @@ function writeClaudeMcp(projectRoot: string, serverCmd: { command: string; args:
   logger.info(`  Claude Code: ${mcpPath}`);
 }
 
-function writeQoderMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
+export function writeQoderMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
   const mcpDir = join(projectRoot, '.qoder');
   if (!existsSync(mcpDir)) return;
 

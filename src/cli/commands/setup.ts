@@ -31,7 +31,14 @@ export function registerSetupCommand(program: Command): void {
       // 1. Detect AI tools
       const tools = detectAITools(projectRoot);
       if (tools.length === 0) {
-        logger.warn('No supported AI tools detected. Continuing anyway...');
+        logger.warn('No supported AI tools detected.');
+        logger.info('');
+        logger.info('  To enable MCP integration, open your AI client in this project first,');
+        logger.info('  then re-run setup. Or use manual configuration:');
+        logger.info('    speclore mcp add cursor   — configure for Cursor');
+        logger.info('    speclore mcp add claude   — configure for Claude Code');
+        logger.info('    speclore mcp add qoder    — configure for Qoder');
+        logger.info('');
       } else {
         logger.info(`Detected AI tools: ${tools.map(t => t.tool).join(', ')}`);
       }
@@ -52,8 +59,8 @@ export function registerSetupCommand(program: Command): void {
         logger.info(`Created config: ${configPath}`);
       }
 
-      // 4. Write MCP configuration
-      writeMcpConfig(projectRoot, opts.global ?? false);
+      // 4. Write MCP configuration (only for detected tools)
+      writeMcpConfig(projectRoot, tools, opts.global ?? false);
 
       // 5. Write rule files for detected tools
       writeRuleFiles(projectRoot, tools);

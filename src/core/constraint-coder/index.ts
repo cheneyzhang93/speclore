@@ -11,9 +11,9 @@ import { readModuleConfig } from '../context-engine/config-reader.js';
 import { getRegistry } from '../../plugins/registry.js';
 import { logger } from '../../infra/logger.js';
 
-const MAPPING_INSTRUCTIONS = `为每个测试文件生成对应的映射文件到 .speclore/mappings/{module}/{feature-name}.json。
-格式：{ "feature": "specs/...", "scenarios": { "Scenario名称": { "testFile": "...", "testMethod": "..." } } }
-每次修改测试时同步更新映射文件。`;
+const MAPPING_INSTRUCTIONS = `Generate a mapping file for each test file at .speclore/mappings/{module}/{feature-name}.json.
+Format: { "feature": "specs/...", "scenarios": { "Scenario name": { "testFile": "...", "testMethod": "..." } } }
+Keep mapping files in sync whenever tests are modified.`;
 
 /**
  * Generate constraints from feature files and write them to AI tool config files.
