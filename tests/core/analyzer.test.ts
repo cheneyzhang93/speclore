@@ -1,11 +1,15 @@
 /**
  * Tests for core/analyzer — impact analysis.
+ *
+ * Uses analyzeImpactWithChanges to pass known changed files directly,
+ * eliminating the need to mock git/child_process — zero vi.mock.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ContextFile, SpecLoreConfig } from '../../src/types/index.js';
+import { analyzeImpactWithChanges } from '../../src/core/analyzer/impact-analyzer.js';
+import type { ContextFile, SpecLoreConfig } from '../../types/index.js';
 
 const TEST_DIR = join(process.cwd(), '.test-analyzer-tmp');
 
@@ -64,74 +68,69 @@ const mockConfig: SpecLoreConfig = {
   },
 };
 
-// Mock child_process to control git diff output
-const mockExecFileSync = vi.fn();
-vi.mock('node:child_process', () => ({
-  execFileSync: (...args: unknown[]) => mockExecFileSync(...args),
-}));
-
-describe('analyzeImpact', () => {
-  beforeEach(() => {
-    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
-    mkdirSync(join(TEST_DIR, 'specs', 'order'), { recursive: true });
-    writeFileSync(join(TEST_DIR, 'specs', 'auth', 'login.feature'), 'Feature: Login', 'utf-8');
-    writeFileSync(join(TEST_DIR, 'specs', 'order', 'create.feature'), 'Feature: Create Order', 'utf-8');
-  });
-
+describe('analyzeImpactWithChanges', () => {
   afterEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
-    vi.clearAllMocks();
   });
 
-  it('should return empty results when git diff returns no changes', async () => {
-    mockExecFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+  it('should return empty results when no files changed', () => {
+    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
+    mkdirSync(join(TEST_DIR, 'specs', 'order'), { recursive: true });
+    writeFileSync(join(TEST_DIR, 'specs', 'auth', 'login.feature'), 'Feature:Login', 'utf-8');
+    writeFileSync(join(TEST_DIR, 'specs', 'order', 'create.feature'), 'Feature:Create Order', 'utf-8');
 
-    const { analyzeImpact } = await import('../../src/core/analyzer/impact-analyzer.js');
-    const result = analyzeImpact(TEST_DIR, mockContext, mockConfig);
+    const result = analyzeImpactWithChanges([], mockContext, mockConfig, TEST_DIR);
+
     expect(result.changedFiles).toEqual([]);
     expect(result.affectedModules).toEqual([]);
     expect(result.affectedFeatures).toEqual([]);
   });
 
-  it('should use config.spec.outputDir for feature search path', async () => {
-    // Custom outputDir
+  it('should use config.spec.outputDir for feature search path', () => {
     const customConfig = {
       ...mockConfig,
       spec: { ...mockConfig.spec, outputDir: 'custom-specs' },
     };
 
-    // Create features in custom dir
+    // Create feature in custom dir
     mkdirSync(join(TEST_DIR, 'custom-specs', 'auth'), { recursive: true });
     writeFileSync(join(TEST_DIR, 'custom-specs', 'auth', 'login.feature'), 'Feature: Login', 'utf-8');
 
-    // Mock git diff to return a changed file in auth module
-    mockExecFileSync.mockReturnValue('src/auth/service.ts\n');
-
-    const { analyzeImpact } = await import('../../src/core/analyzer/impact-analyzer.js');
-    const result = analyzeImpact(TEST_DIR, mockContext, customConfig);
+    const result = analyzeImpactWithChanges(
+      ['src/auth/service.ts'],
+      mockContext,
+      customConfig,
+      TEST_DIR,
+    );
 
     // Should find features in custom-specs/, not specs/
     expect(result.affectedFeatures.length).toBeGreaterThan(0);
     expect(result.affectedFeatures.some((f: string) => f.includes('custom-specs'))).toBe(true);
   });
 
-  it('should detect transitive module dependencies', async () => {
-    // Mock git diff to return a changed file in auth module
-    mockExecFileSync.mockReturnValue('src/auth/user.ts\n');
+  it('should detect transitive module dependencies', () => {
+    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
+    mkdirSync(join(TEST_DIR, 'specs', 'order'), { recursive: true });
+    writeFileSync(join(TEST_DIR, 'specs', 'auth', 'login.feature'), 'Feature:Login', 'utf-8');
+    writeFileSync(join(TEST_DIR, 'specs', 'order', 'create.feature'), 'Feature:Create Order', 'utf-8');
 
-    const { analyzeImpact } = await import('../../src/core/analyzer/impact-analyzer.js');
-    const result = analyzeImpact(TEST_DIR, mockContext, mockConfig);
+    const result = analyzeImpactWithChanges(
+      ['src/auth/user.ts'],
+      mockContext,
+      mockConfig,
+      TEST_DIR,
+    );
 
     // auth is directly affected, order depends on auth → both affected
     expect(result.affectedModules).toContain('auth');
     expect(result.affectedModules).toContain('order');
   });
 
-  it('should return correct structure', async () => {
-    mockExecFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+  it('should return correct structure', () => {
+    mkdirSync(join(TEST_DIR, 'specs'), { recursive: true });
 
-    const { analyzeImpact } = await import('../../src/core/analyzer/impact-analyzer.js');
-    const result = analyzeImpact(TEST_DIR, mockContext, mockConfig);
+    const result = analyzeImpactWithChanges([], mockContext, mockConfig, TEST_DIR);
+
     expect(result).toHaveProperty('changedFiles');
     expect(result).toHaveProperty('affectedModules');
     expect(result).toHaveProperty('affectedFeatures');
@@ -140,11 +139,16 @@ describe('analyzeImpact', () => {
     expect(Array.isArray(result.affectedFeatures)).toBe(true);
   });
 
-  it('should map changed files to correct modules', async () => {
-    mockExecFileSync.mockReturnValue('src/order/service.ts\nsrc/order/handler.ts\n');
+  it('should map changed files to correct modules', () => {
+    mkdirSync(join(TEST_DIR, 'specs', 'order'), { recursive: true });
+    writeFileSync(join(TEST_DIR, 'specs', 'order', 'create.feature'), 'Feature:Create Order', 'utf-8');
 
-    const { analyzeImpact } = await import('../../src/core/analyzer/impact-analyzer.js');
-    const result = analyzeImpact(TEST_DIR, mockContext, mockConfig);
+    const result = analyzeImpactWithChanges(
+      ['src/order/service.ts', 'src/order/handler.ts'],
+      mockContext,
+      mockConfig,
+      TEST_DIR,
+    );
 
     expect(result.changedFiles).toContain('src/order/service.ts');
     expect(result.changedFiles).toContain('src/order/handler.ts');

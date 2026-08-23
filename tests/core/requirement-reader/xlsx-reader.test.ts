@@ -1,107 +1,32 @@
 /**
  * XLSX reader integration tests.
  *
- * Uses real xlsx files generated via SheetJS to test end-to-end reading.
- * Mocks only the file I/O layer (xlsx.readFile) to work in sandboxed environments,
- * while keeping the full xlsx parsing logic intact.
+ * Generates real .xlsx Buffers via SheetJS, then calls parseXlsxBuffer
+ * with real xlsx.read — zero mocks, zero file I/O.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { utils, write, read } from 'xlsx';
-import { readXlsxFile } from '../../../src/core/requirement-reader/xlsx-reader.js';
+import { describe, it, expect } from 'vitest';
+import { utils, write } from 'xlsx';
+import { parseXlsxBuffer } from '../../../src/core/requirement-reader/xlsx-reader.js';
 
-const FIXTURES_DIR = join(process.cwd(), '.test-xlsx-fixtures');
-
-/** Write a workbook to disk using Node.js fs. */
-function saveWorkbook(wb: ReturnType<typeof utils.book_new>, filePath: string): void {
-  const buf = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
-  writeFileSync(filePath, buf);
+/** Generate a real xlsx Buffer from an array-of-arrays. */
+function createXlsxBuffer(aoa: unknown[][], sheetName = 'Sheet1'): Buffer {
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(aoa);
+  utils.book_append_sheet(wb, ws, sheetName);
+  return write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 }
 
-// Mock xlsx.readFile to use Node.js readFileSync + xlsx.read (sandbox-compatible)
-vi.mock('xlsx', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('xlsx')>();
-  return {
-    ...actual,
-    readFile: vi.fn((filePath: string) => {
-      const buf = readFileSync(filePath);
-      return actual.read(buf);
-    }),
-  };
-});
-
-beforeAll(() => {
-  mkdirSync(FIXTURES_DIR, { recursive: true });
-
-  // Fixture 1: Standard requirements table
-  const wb1 = utils.book_new();
-  const ws1 = utils.aoa_to_sheet([
-    ['ID', 'Description', 'Priority'],
-    ['REQ-1', 'User login', 'High'],
-    ['REQ-2', 'User registration', 'Medium'],
-    ['REQ-3', 'Password reset', 'Low'],
-  ]);
-  utils.book_append_sheet(wb1, ws1, 'Requirements');
-  saveWorkbook(wb1, join(FIXTURES_DIR, 'requirements.xlsx'));
-
-  // Fixture 2: Multi-type cells (numbers, booleans, empty)
-  const wb2 = utils.book_new();
-  const ws2 = utils.aoa_to_sheet([
-    ['Name', 'Count', 'Active', 'Notes'],
-    ['Feature A', 42, true, 'Stable'],
-    ['Feature B', 0, false, ''],
-    ['Feature C', null, null, 'No data'],
-  ]);
-  utils.book_append_sheet(wb2, ws2, 'Data');
-  saveWorkbook(wb2, join(FIXTURES_DIR, 'mixed-types.xlsx'));
-
-  // Fixture 3: Empty sheet
-  const wb3 = utils.book_new();
-  const ws3 = utils.aoa_to_sheet([]);
-  utils.book_append_sheet(wb3, ws3, 'Empty');
-  saveWorkbook(wb3, join(FIXTURES_DIR, 'empty-sheet.xlsx'));
-
-  // Fixture 4: Chinese content
-  const wb4 = utils.book_new();
-  const ws4 = utils.aoa_to_sheet([
-    ['编号', '需求描述', '优先级'],
-    ['REQ-001', '用户登录功能', '高'],
-    ['REQ-002', '数据导出功能', '中'],
-  ]);
-  utils.book_append_sheet(wb4, ws4, '需求列表');
-  saveWorkbook(wb4, join(FIXTURES_DIR, '中文需求.xlsx'));
-
-  // Fixture 5: Headers only, no data rows
-  const wb5 = utils.book_new();
-  const ws5 = utils.aoa_to_sheet([
-    ['Title', 'Description'],
-  ]);
-  utils.book_append_sheet(wb5, ws5, 'HeadersOnly');
-  saveWorkbook(wb5, join(FIXTURES_DIR, 'headers-only.xlsx'));
-
-  // Fixture 6: Sparse rows (different column counts)
-  const wb6 = utils.book_new();
-  const ws6 = utils.aoa_to_sheet([
-    ['A', 'B', 'C', 'D'],
-    ['val1', 'val2'],
-    ['x'],
-    ['p', 'q', 'r', 's'],
-  ]);
-  utils.book_append_sheet(wb6, ws6, 'Sparse');
-  saveWorkbook(wb6, join(FIXTURES_DIR, 'sparse.xlsx'));
-});
-
-afterAll(() => {
-  if (existsSync(FIXTURES_DIR)) {
-    rmSync(FIXTURES_DIR, { recursive: true, force: true });
-  }
-});
-
-describe('readXlsxFile — real xlsx reading', () => {
+describe('parseXlsxBuffer — real xlsx parsing', () => {
   it('should extract all rows from a standard requirements table', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'requirements.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['ID', 'Description', 'Priority'],
+      ['REQ-1', 'User login', 'High'],
+      ['REQ-2', 'User registration', 'Medium'],
+      ['REQ-3', 'Password reset', 'Low'],
+    ], 'Requirements');
+
+    const result = await parseXlsxBuffer(buffer, 'requirements');
 
     expect(result.title).toBe('Requirements');
     expect(result.id).toBe('requirements');
@@ -116,7 +41,14 @@ describe('readXlsxFile — real xlsx reading', () => {
   });
 
   it('should format key-value pairs with pipe separator', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'requirements.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['ID', 'Description', 'Priority'],
+      ['REQ-1', 'User login', 'High'],
+      ['REQ-2', 'User registration', 'Medium'],
+      ['REQ-3', 'Password reset', 'Low'],
+    ], 'Requirements');
+
+    const result = await parseXlsxBuffer(buffer, 'requirements');
 
     const lines = result.description.split('\n');
     expect(lines.length).toBe(3);
@@ -126,7 +58,14 @@ describe('readXlsxFile — real xlsx reading', () => {
   });
 
   it('should handle mixed cell types (numbers, booleans, empty)', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'mixed-types.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['Name', 'Count', 'Active', 'Notes'],
+      ['Feature A', 42, true, 'Stable'],
+      ['Feature B', 0, false, ''],
+      ['Feature C', null, null, 'No data'],
+    ], 'Data');
+
+    const result = await parseXlsxBuffer(buffer, 'data');
 
     expect(result.title).toBe('Data');
     expect(result.description).toContain('Name: Feature A');
@@ -139,7 +78,9 @@ describe('readXlsxFile — real xlsx reading', () => {
   });
 
   it('should return empty content for empty sheet', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'empty-sheet.xlsx'));
+    const buffer = createXlsxBuffer([], 'Empty');
+
+    const result = await parseXlsxBuffer(buffer, 'empty');
 
     expect(result.title).toBe('Empty');
     expect(result.description).toBe('');
@@ -147,7 +88,13 @@ describe('readXlsxFile — real xlsx reading', () => {
   });
 
   it('should handle Chinese content correctly', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, '中文需求.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['编号', '需求描述', '优先级'],
+      ['REQ-001', '用户登录功能', '高'],
+      ['REQ-002', '数据导出功能', '中'],
+    ], '需求列表');
+
+    const result = await parseXlsxBuffer(buffer, '中文需求');
 
     expect(result.title).toBe('需求列表');
     expect(result.id).toBe('中文需求');
@@ -156,25 +103,50 @@ describe('readXlsxFile — real xlsx reading', () => {
     expect(result.description).toContain('优先级: 高');
   });
 
-  it('should derive ID from filename with Chinese characters', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, '中文需求.xlsx'));
-    expect(result.id).toBe('中文需求');
+  it('should derive ID from idHint, lowercased and sanitized', async () => {
+    const buffer = createXlsxBuffer([['Content']]);
+
+    const result = await parseXlsxBuffer(buffer, 'Patient Intake Form');
+
+    expect(result.id).toBe('patient-intake-form');
   });
 
-  it('should derive ID from filename with standard name', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'requirements.xlsx'));
-    expect(result.id).toBe('requirements');
+  it('should handle CJK characters in idHint', async () => {
+    const buffer = createXlsxBuffer([['内容']]);
+
+    const result = await parseXlsxBuffer(buffer, '患者信息');
+
+    expect(result.id).toBe('患者信息');
+  });
+
+  it('should use default idHint "document" when not provided', async () => {
+    const buffer = createXlsxBuffer([['Some text']]);
+
+    const result = await parseXlsxBuffer(buffer);
+
+    expect(result.id).toBe('document');
   });
 
   it('should handle headers-only sheet (no data rows)', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'headers-only.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['Title', 'Description'],
+    ], 'HeadersOnly');
+
+    const result = await parseXlsxBuffer(buffer, 'headers-only');
 
     expect(result.title).toBe('HeadersOnly');
     expect(result.description).toBe('');
   });
 
   it('should handle sparse rows with different column counts', async () => {
-    const result = await readXlsxFile(join(FIXTURES_DIR, 'sparse.xlsx'));
+    const buffer = createXlsxBuffer([
+      ['A', 'B', 'C', 'D'],
+      ['val1', 'val2'],
+      ['x'],
+      ['p', 'q', 'r', 's'],
+    ], 'Sparse');
+
+    const result = await parseXlsxBuffer(buffer, 'sparse');
 
     expect(result.title).toBe('Sparse');
     expect(result.description).toContain('A: val1');
@@ -184,9 +156,13 @@ describe('readXlsxFile — real xlsx reading', () => {
   });
 });
 
-describe('readXlsxFile — error handling', () => {
-  it('should throw when file does not exist', async () => {
-    const { readXlsxFile: readXlsx } = await import('../../../src/core/requirement-reader/xlsx-reader.js');
-    expect(() => readXlsx('/nonexistent/path/fake.xlsx')).toThrow();
+describe('parseXlsxBuffer — edge cases', () => {
+  it('should return empty content for garbage buffer (SheetJS is lenient)', async () => {
+    const fakeBuffer = Buffer.from('this is not an xlsx file');
+
+    // SheetJS xlsx.read() is lenient — it returns an empty workbook, not an error
+    const result = await parseXlsxBuffer(fakeBuffer, 'bad');
+    expect(result.id).toBe('bad');
+    expect(result.description).toBe('');
   });
 });

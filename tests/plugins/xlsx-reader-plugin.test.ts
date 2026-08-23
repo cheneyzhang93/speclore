@@ -1,96 +1,23 @@
 /**
  * XlsxReader plugin integration tests.
  *
- * Tests the built-in XlsxReader plugin with real xlsx files.
- * Mocks only the file I/O layer (xlsx.readFile) to work in sandboxed environments,
- * while keeping the full xlsx parsing logic intact.
+ * Tests the built-in XlsxReader plugin with real xlsx Buffers.
+ * Uses parseXlsxBuffer directly — zero mocks, zero file I/O.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { utils, write, read } from 'xlsx';
-import { XlsxReader } from '../../src/plugins/builtin/xlsx-reader.js';
+import { describe, it, expect } from 'vitest';
+import { utils, write } from 'xlsx';
+import { XlsxReader, parseXlsxBuffer } from '../../src/plugins/builtin/xlsx-reader.js';
 
-const FIXTURES_DIR = join(process.cwd(), '.test-xlsx-plugin-fixtures');
-
-/** Write a workbook to disk using Node.js fs. */
-function saveWorkbook(wb: ReturnType<typeof utils.book_new>, filePath: string): void {
-  const buf = write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
-  writeFileSync(filePath, buf);
-}
-
-// Mock xlsx.readFile to use Node.js readFileSync + xlsx.read (sandbox-compatible)
-vi.mock('xlsx', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('xlsx')>();
-  return {
-    ...actual,
-    readFile: vi.fn((filePath: string) => {
-      const buf = readFileSync(filePath);
-      return actual.read(buf);
-    }),
-  };
-});
-
-beforeAll(() => {
-  mkdirSync(FIXTURES_DIR, { recursive: true });
-
-  // Fixture 1: Standard requirements with Title/Description/AC columns
-  const wb1 = utils.book_new();
-  const ws1 = utils.aoa_to_sheet([
-    ['Title', 'Description', 'Acceptance Criteria'],
-    ['User Login', 'Users can log in with email and password', '1. Enter email\n2. Enter password\n3. Click login'],
-    ['User Registration', 'New users can create an account', '1. Fill form\n2. Submit'],
-    ['Password Reset', 'Users can reset forgotten password', ''],
-  ]);
-  utils.book_append_sheet(wb1, ws1, 'Auth');
-  saveWorkbook(wb1, join(FIXTURES_DIR, 'auth-requirements.xlsx'));
-
-  // Fixture 2: Multi-sheet workbook
-  const wb2 = utils.book_new();
-  const ws2a = utils.aoa_to_sheet([
-    ['Title', 'Description'],
-    ['Feature A', 'Description for A'],
-  ]);
-  const ws2b = utils.aoa_to_sheet([
-    ['Title', 'Description'],
-    ['Feature B', 'Description for B'],
-    ['Feature C', 'Description for C'],
-  ]);
-  utils.book_append_sheet(wb2, ws2a, 'Sheet1');
-  utils.book_append_sheet(wb2, ws2b, 'Sheet2');
-  saveWorkbook(wb2, join(FIXTURES_DIR, 'multi-sheet.xlsx'));
-
-  // Fixture 3: Alternative column names (Name/Desc/AC)
-  const wb3 = utils.book_new();
-  const ws3 = utils.aoa_to_sheet([
-    ['Name', 'Desc', 'AC'],
-    ['Login Feature', 'Allow users to login', 'Must work'],
-  ]);
-  utils.book_append_sheet(wb3, ws3, 'Features');
-  saveWorkbook(wb3, join(FIXTURES_DIR, 'alt-columns.xlsx'));
-
-  // Fixture 4: No recognized columns
-  const wb4 = utils.book_new();
-  const ws4 = utils.aoa_to_sheet([
-    ['Col1', 'Col2', 'Col3'],
-    ['data1', 'data2', 'data3'],
-  ]);
-  utils.book_append_sheet(wb4, ws4, 'Unrecognized');
-  saveWorkbook(wb4, join(FIXTURES_DIR, 'no-matching-columns.xlsx'));
-
-  // Fixture 5: Empty workbook
-  const wb5 = utils.book_new();
-  const ws5 = utils.aoa_to_sheet([]);
-  utils.book_append_sheet(wb5, ws5, 'Empty');
-  saveWorkbook(wb5, join(FIXTURES_DIR, 'empty.xlsx'));
-});
-
-afterAll(() => {
-  if (existsSync(FIXTURES_DIR)) {
-    rmSync(FIXTURES_DIR, { recursive: true, force: true });
+/** Generate a real xlsx Buffer from an array-of-arrays with named sheets. */
+function createXlsxBuffer(sheets: Array<{ name: string; aoa: unknown[] }>): Buffer {
+  const wb = utils.book_new();
+  for (const { name, aoa } of sheets) {
+    const ws = utils.aoa_to_sheet(aoa);
+    utils.book_append_sheet(wb, ws, name);
   }
-});
+  return write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+}
 
 describe('XlsxReader — canRead', () => {
   const reader = new XlsxReader();
@@ -126,11 +53,19 @@ describe('XlsxReader — plugin metadata', () => {
   });
 });
 
-describe('XlsxReader — real xlsx reading', () => {
-  const reader = new XlsxReader();
+describe('parseXlsxBuffer — real xlsx parsing', () => {
+  it('should read requirements with Title/Description/AC columns', () => {
+    const buffer = createXlsxBuffer([{
+      name: 'Auth',
+      aoa: [
+        ['Title', 'Description', 'Acceptance Criteria'],
+        ['User Login', 'Users can log in with email and password', '1. Enter email\n2. Enter password\n3. Click login'],
+        ['User Registration', 'New users can create an account', '1. Fill form\n2. Submit'],
+        ['Password Reset', 'Users can reset forgotten password', ''],
+      ],
+    }]);
 
-  it('should read requirements with Title/Description/AC columns', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'auth-requirements.xlsx'));
+    const results = parseXlsxBuffer(buffer);
 
     expect(results.length).toBe(3);
 
@@ -151,8 +86,26 @@ describe('XlsxReader — real xlsx reading', () => {
     expect(reset.acceptanceCriteria).toBeUndefined();
   });
 
-  it('should read from multiple sheets', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'multi-sheet.xlsx'));
+  it('should read from multiple sheets', () => {
+    const buffer = createXlsxBuffer([
+      {
+        name: 'Sheet1',
+        aoa: [
+          ['Title', 'Description'],
+          ['Feature A', 'Description for A'],
+        ],
+      },
+      {
+        name: 'Sheet2',
+        aoa: [
+          ['Title', 'Description'],
+          ['Feature B', 'Description for B'],
+          ['Feature C', 'Description for C'],
+        ],
+      },
+    ]);
+
+    const results = parseXlsxBuffer(buffer);
 
     expect(results.length).toBe(3);
     expect(results[0]!.title).toBe('Feature A');
@@ -163,8 +116,16 @@ describe('XlsxReader — real xlsx reading', () => {
     expect(results[2]!.id).toBe('Sheet2/2');
   });
 
-  it('should recognize alternative column names (Name/Desc/AC)', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'alt-columns.xlsx'));
+  it('should recognize alternative column names (Name/Desc/AC)', () => {
+    const buffer = createXlsxBuffer([{
+      name: 'Features',
+      aoa: [
+        ['Name', 'Desc', 'AC'],
+        ['Login Feature', 'Allow users to login', 'Must work'],
+      ],
+    }]);
+
+    const results = parseXlsxBuffer(buffer);
 
     expect(results.length).toBe(1);
     expect(results[0]!.title).toBe('Login Feature');
@@ -172,32 +133,71 @@ describe('XlsxReader — real xlsx reading', () => {
     expect(results[0]!.acceptanceCriteria).toEqual(['Must work']);
   });
 
-  it('should use Row N as fallback title when no matching columns', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'no-matching-columns.xlsx'));
+  it('should use Row N as fallback title when no matching columns', () => {
+    const buffer = createXlsxBuffer([{
+      name: 'Unrecognized',
+      aoa: [
+        ['Col1', 'Col2', 'Col3'],
+        ['data1', 'data2', 'data3'],
+      ],
+    }]);
+
+    const results = parseXlsxBuffer(buffer);
 
     expect(results.length).toBe(1);
     expect(results[0]!.title).toBe('Row 1');
     expect(results[0]!.description).toBe('');
   });
 
-  it('should return empty array for empty workbook', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'empty.xlsx'));
+  it('should return empty array for empty workbook', () => {
+    const buffer = createXlsxBuffer([{ name: 'Empty', aoa: [] }]);
+
+    const results = parseXlsxBuffer(buffer);
     expect(results).toEqual([]);
   });
 
-  it('should include rawContent as JSON', async () => {
-    const results = await reader.read(join(FIXTURES_DIR, 'auth-requirements.xlsx'));
+  it('should include rawContent as JSON', () => {
+    const buffer = createXlsxBuffer([{
+      name: 'Auth',
+      aoa: [
+        ['Title', 'Description', 'Acceptance Criteria'],
+        ['User Login', 'Users can log in with email and password', '1. Enter email\n2. Enter password\n3. Click login'],
+      ],
+    }]);
+
+    const results = parseXlsxBuffer(buffer);
 
     const raw = JSON.parse(results[0]!.rawContent);
     expect(raw).toHaveProperty('Title', 'User Login');
     expect(raw).toHaveProperty('Description');
   });
+
+  it('should handle Chinese content values with English column headers', () => {
+    const buffer = createXlsxBuffer([{
+      name: '需求列表',
+      aoa: [
+        ['Title', 'Description', 'Acceptance Criteria'],
+        ['用户登录', '用户可以通过邮箱和密码登录', '输入邮箱\n输入密码\n点击登录'],
+        ['数据导出', '用户可以导出数据为Excel文件', ''],
+      ],
+    }]);
+
+    const results = parseXlsxBuffer(buffer);
+
+    expect(results.length).toBe(2);
+    expect(results[0]!.title).toBe('用户登录');
+    expect(results[0]!.description).toBe('用户可以通过邮箱和密码登录');
+    expect(results[0]!.acceptanceCriteria).toEqual(['输入邮箱', '输入密码', '点击登录']);
+    expect(results[0]!.id).toBe('需求列表/1');
+  });
 });
 
-describe('XlsxReader — error handling', () => {
-  const reader = new XlsxReader();
+describe('parseXlsxBuffer — edge cases', () => {
+  it('should return empty array for garbage buffer (SheetJS is lenient)', () => {
+    const fakeBuffer = Buffer.from('this is not an xlsx file');
 
-  it('should throw when file does not exist', () => {
-    expect(() => reader.read('/nonexistent/fake.xlsx')).toThrow();
+    // SheetJS xlsx.read() is lenient — it returns an empty workbook, not an error
+    const results = parseXlsxBuffer(fakeBuffer);
+    expect(results).toEqual([]);
   });
 });

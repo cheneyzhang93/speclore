@@ -13,6 +13,7 @@ import { Parser, GherkinClassicTokenMatcher, AstBuilder } from '@cucumber/gherki
 import { IdGenerator } from '@cucumber/messages';
 import type { StructuredRequirement, FeatureFile, Scenario, ContextFile, SpecLoreConfig } from '../../types/index.js';
 import { createProvider, createProviderChain } from '../../ai/provider.js';
+import type { AIProvider } from '../../ai/provider.js';
 import { validateFeatureOutput } from '../../ai/output-validator.js';
 import { getCostTracker } from '../../ai/cost-tracker.js';
 import { estimateTokens } from '../../ai/token-counter.js';
@@ -32,6 +33,7 @@ export async function generateFeature(
   context: ContextFile,
   config: SpecLoreConfig,
   projectRoot: string,
+  providerOverride?: AIProvider,
 ): Promise<FeatureFile> {
   logger.info(`Generating feature for: ${requirement.title}`);
 
@@ -46,9 +48,9 @@ export async function generateFeature(
   const aiConfig = config.ai;
   const fallbackConfigs = aiConfig?.fallbackProviders ?? [];
   const providerConfigs = aiConfig ? [aiConfig, ...fallbackConfigs] : [];
-  const provider = providerConfigs.length > 1
+  const provider = providerOverride ?? (providerConfigs.length > 1
     ? await createProviderChain(providerConfigs)
-    : await createProvider(aiConfig);
+    : await createProvider(aiConfig));
 
   if (!provider.isAvailable()) {
     throw new Error('AI provider not available. Set API key in environment or config.yaml.');

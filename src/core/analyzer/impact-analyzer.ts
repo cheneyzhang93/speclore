@@ -26,7 +26,19 @@ export function analyzeImpact(
 ): ImpactResult {
   // Get changed files from git
   const changedFiles = getChangedFiles(projectRoot);
+  return analyzeImpactWithChanges(changedFiles, context, config, projectRoot);
+}
 
+/**
+ * Analyze impact with a known list of changed files.
+ * Use this for testing without requiring a real git repository.
+ */
+export function analyzeImpactWithChanges(
+  changedFiles: string[],
+  context: ContextFile,
+  config: SpecLoreConfig,
+  projectRoot: string,
+): ImpactResult {
   // Determine affected modules via CDG
   const affectedModules = determineAffectedModules(changedFiles, context);
 

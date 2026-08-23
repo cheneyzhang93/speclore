@@ -10,6 +10,7 @@ import { basename, extname } from 'node:path';
 import { readFileSync } from 'node:fs';
 import type { StructuredRequirement } from '../../types/index.js';
 import { createProvider } from '../../ai/provider.js';
+import type { AIProvider } from '../../ai/provider.js';
 import { logger } from '../../infra/logger.js';
 
 const MIME_MAP: Record<string, string> = {
@@ -19,7 +20,7 @@ const MIME_MAP: Record<string, string> = {
   '.webp': 'image/webp',
 };
 
-export async function readImageFile(filePath: string): Promise<StructuredRequirement> {
+export async function readImageFile(filePath: string, providerOverride?: AIProvider): Promise<StructuredRequirement> {
   const id = basename(filePath, extname(filePath))
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fff-]/g, '-')
@@ -31,7 +32,7 @@ export async function readImageFile(filePath: string): Promise<StructuredRequire
   const mimeType = MIME_MAP[ext] ?? 'image/png';
   const buffer = readFileSync(filePath);
 
-  const provider = await createProvider();
+  const provider = providerOverride ?? await createProvider();
   const prompt = `Please extract all text content from this image. Return the text as-is, preserving structure and formatting. If the image contains a table, convert it to a structured text format.`;
 
   if (!provider.generateWithImage) {

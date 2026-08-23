@@ -1,16 +1,21 @@
 /**
  * Tests for core/feature-generator — prompt building and feature generation.
+ *
+ * buildPrompt tests: pure function, no mocks needed.
+ * generateFeature tests: use FakeProvider via providerOverride — zero vi.mock.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { existsSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPrompt } from '../../src/core/feature-generator/prompt-builder.js';
-import type { StructuredRequirement, ContextFile, SpecLoreConfig } from '../../src/types/index.js';
+import { generateFeature } from '../../src/core/feature-generator/generator.js';
+import type { StructuredRequirement, ContextFile, SpecLoreConfig } from '../../types/index.js';
+import type { AIProvider, GenerateOptions, GenerateResult } from '../../src/ai/provider.js';
 
 const TEST_DIR = join(process.cwd(), '.test-feature-gen-tmp');
 
-// ---- Shared mock data ----
+// ---- Shared test data ----
 
 const mockRequirement: StructuredRequirement = {
   id: 'login',
@@ -82,7 +87,33 @@ const mockConfig: SpecLoreConfig = {
   },
 };
 
-// ---- buildPrompt tests ----
+// ---- FakeProvider ----
+
+class FakeTextProvider implements AIProvider {
+  readonly name = 'fake';
+  private responses: string[];
+  callCount = 0;
+
+  constructor(responses: string[]) {
+    this.responses = [...responses];
+  }
+
+  isAvailable() { return true; }
+
+  async generate(_prompt: string, _options?: GenerateOptions): Promise<GenerateResult> {
+    const content = this.responses[this.callCount] ?? this.responses[this.responses.length - 1] ?? '';
+    this.callCount++;
+    return { content };
+  }
+}
+
+class FakeUnavailableProvider implements AIProvider {
+  readonly name = 'unavailable';
+  isAvailable() { return false; }
+  async generate(): Promise<GenerateResult> { return { content: '' }; }
+}
+
+// ---- buildPrompt tests (unchanged — pure function) ----
 
 describe('buildPrompt', () => {
   it('should include project context', () => {
@@ -147,7 +178,6 @@ describe('buildPrompt', () => {
   it('should handle empty module boundaries', () => {
     const emptyContext = { ...mockContext, moduleBoundaries: [] };
     const prompt = buildPrompt(mockRequirement, emptyContext, mockConfig);
-    // Template always includes the section, but shows '(none)' when empty
     expect(prompt).toContain('Module Boundaries');
     expect(prompt).toContain('(none)');
   });
@@ -155,49 +185,21 @@ describe('buildPrompt', () => {
   it('should handle empty existing entities', () => {
     const emptyContext = { ...mockContext, existingCode: { entities: [], apis: [] } };
     const prompt = buildPrompt(mockRequirement, emptyContext, mockConfig);
-    // Template always includes the section, but shows '(none)' when empty
     expect(prompt).toContain('Existing Entities');
     expect(prompt).toContain('(none)');
   });
 });
 
-// ---- generateFeature integration tests ----
-// Use vi.hoisted to define mock data accessible to hoisted vi.mock
+// ---- generateFeature tests (FakeProvider injection) ----
 
-const { mockGenerate, mockIsAvailable } = vi.hoisted(() => {
-  return {
-    mockGenerate: vi.fn(),
-    mockIsAvailable: vi.fn(() => true),
-  };
-});
-
-vi.mock('../../src/ai/provider.js', () => ({
-  createProvider: vi.fn().mockImplementation(() =>
-    Promise.resolve({
-      name: 'test',
-      isAvailable: mockIsAvailable,
-      generate: mockGenerate,
-    }),
-  ),
-}));
-
-describe('generateFeature', () => {
-  beforeEach(() => {
-    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
-    // Reset call history but keep mock implementations
-    mockGenerate.mockReset();
-    mockIsAvailable.mockReset();
-    mockIsAvailable.mockReturnValue(true);
-  });
-
+describe('generateFeature — with FakeProvider', () => {
   afterEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
   });
 
   it('should generate a feature file and write to disk', async () => {
-    // Note: the parser regex uses `s` flag so `.` matches newlines.
-    // Scenario name captures until \n\n (blank line separator).
-    // We provide content without blank lines between scenarios to get clean names.
+    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
+
     const aiContent = [
       'Feature: 用户登录',
       '  Scenario: 登录成功',
@@ -210,19 +212,15 @@ describe('generateFeature', () => {
       '    Then 显示错误提示',
     ].join('\n');
 
-    mockGenerate.mockResolvedValue({ content: aiContent });
-
-    const { generateFeature } = await import('../../src/core/feature-generator/generator.js');
-    const feature = await generateFeature(mockRequirement, mockContext, mockConfig, TEST_DIR);
+    const fakeProvider = new FakeTextProvider([aiContent]);
+    const feature = await generateFeature(mockRequirement, mockContext, mockConfig, TEST_DIR, fakeProvider);
 
     expect(feature).toBeDefined();
     expect(feature.featureName).toBe('用户登录');
-    // Due to regex `s` flag, the parser captures until \n\n or end.
-    // Without blank lines, all scenarios merge into one block.
     expect(feature.scenarios.length).toBeGreaterThanOrEqual(1);
     expect(feature.confidence).toBe(0.9);
 
-    // Verify file was written — inferModule returns 'auth' from context
+    // Verify file was written
     const writtenPath = join(TEST_DIR, 'specs', 'auth', 'login.feature');
     expect(existsSync(writtenPath)).toBe(true);
     const content = readFileSync(writtenPath, 'utf-8');
@@ -230,31 +228,29 @@ describe('generateFeature', () => {
   });
 
   it('should flag low-confidence requirements for review', async () => {
+    mkdirSync(join(TEST_DIR, 'specs', 'auth'), { recursive: true });
+
     const lowConfReq = { ...mockRequirement, confidence: 0.3 };
-    mockGenerate.mockResolvedValue({
-      content: 'Feature: 登录\n  Scenario: 登录\n    Given 已注册\n    When 登录\n    Then 成功',
-    });
+    const fakeProvider = new FakeTextProvider([
+      'Feature: 登录\n  Scenario: 登录\n    Given 已注册\n    When 登录\n    Then 成功',
+    ]);
 
-    const { generateFeature } = await import('../../src/core/feature-generator/generator.js');
-    const feature = await generateFeature(lowConfReq, mockContext, mockConfig, TEST_DIR);
+    const feature = await generateFeature(lowConfReq, mockContext, mockConfig, TEST_DIR, fakeProvider);
 
-    // Low confidence should flag all scenarios for review
-    // The parser may produce 0 scenarios if regex doesn't match,
-    // but needsReview should still reflect the low confidence
     expect(feature.confidence).toBe(0.3);
-    // If scenarios were parsed, they should all be in needsReview
     if (feature.scenarios.length > 0) {
       expect(feature.needsReview.length).toBe(feature.scenarios.length);
     }
-    // needsReview should be non-empty since confidence < threshold
     expect(feature.needsReview.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('should throw when AI provider is not available', async () => {
-    mockIsAvailable.mockReturnValue(false);
+  it('should throw when provider is not available', async () => {
+    mkdirSync(join(TEST_DIR, 'specs'), { recursive: true });
 
-    const { generateFeature } = await import('../../src/core/feature-generator/generator.js');
-    await expect(generateFeature(mockRequirement, mockContext, mockConfig, TEST_DIR))
-      .rejects.toThrow('AI provider not available');
+    const unavailableProvider = new FakeUnavailableProvider();
+
+    await expect(
+      generateFeature(mockRequirement, mockContext, mockConfig, TEST_DIR, unavailableProvider),
+    ).rejects.toThrow('AI provider not available');
   });
 });

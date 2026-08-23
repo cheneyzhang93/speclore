@@ -7,14 +7,16 @@
  */
 
 import { basename, extname } from 'node:path';
-import { readFile, utils } from 'xlsx';
+import { readFile, read, utils, type WorkBook } from 'xlsx';
 import { formatCellValue } from '../../infra/excel-utils.js';
 import type { StructuredRequirement } from '../../types/index.js';
 
-export function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
-  const workbook = readFile(filePath);
-
-  const id = basename(filePath, extname(filePath))
+/** Internal: parse a SheetJS WorkBook into structured requirements. */
+function parseWorkbook(
+  workbook: WorkBook,
+  idHint: string,
+): Promise<StructuredRequirement> {
+  const id = idHint
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fff-]/g, '-')
     .replace(/-+/g, '-');
@@ -22,11 +24,11 @@ export function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
   // Read the first sheet
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) {
-    return Promise.reject(new Error(`No sheets found in ${filePath}`));
+    return Promise.reject(new Error('No sheets found in workbook'));
   }
   const sheet = workbook.Sheets[firstSheetName];
   if (!sheet) {
-    return Promise.reject(new Error(`Sheet "${firstSheetName}" not found in ${filePath}`));
+    return Promise.reject(new Error(`Sheet "${firstSheetName}" not found`));
   }
 
   const title = firstSheetName;
@@ -75,4 +77,22 @@ export function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
     rawContent: content,
     confidence: 0.85,
   });
+}
+
+/**
+ * Parse an xlsx Buffer and extract structured requirements.
+ * Tests can call this directly with a real xlsx Buffer — no file I/O needed.
+ */
+export function parseXlsxBuffer(
+  buffer: Buffer,
+  idHint?: string,
+): Promise<StructuredRequirement> {
+  const workbook = read(buffer);
+  return parseWorkbook(workbook, idHint ?? 'document');
+}
+
+export function readXlsxFile(filePath: string): Promise<StructuredRequirement> {
+  const workbook = readFile(filePath);
+  const idHint = basename(filePath, extname(filePath));
+  return parseWorkbook(workbook, idHint);
 }

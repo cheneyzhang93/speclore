@@ -1,99 +1,159 @@
 /**
- * PDF reader unit tests.
+ * PDF reader integration tests.
  *
- * Tests PDF text extraction, ID derivation, and error handling.
- * Uses vi.mock to mock pdf-parse dynamic import and fs readFile.
+ * Constructs real PDF buffers using pdfkit and tests parsePdfBuffer
+ * with real pdfjs-dist — zero mocks.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import PDFDocument from 'pdfkit';
+import { parsePdfBuffer } from '../../../src/core/requirement-reader/pdf-reader.js';
 
-// Mock pdf-parse module
-const mockPdfParse = vi.fn();
-vi.mock('pdf-parse', () => ({
-  default: mockPdfParse,
-}));
+/** Generate a real PDF buffer with the given text using PDFKit. */
+function createPdfBuffer(text: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    doc.text(text, 72, 700);
+    doc.end();
+  });
+}
 
-// Mock node:fs/promises readFile
-const mockReadFile = vi.fn();
-vi.mock('node:fs/promises', () => ({
-  readFile: mockReadFile,
-}));
+/** Generate a real PDF with multiple text blocks at different positions. */
+function createComplexPdf(
+  blocks: Array<{ text: string; x: number; y: number }>,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    for (const { text, x, y } of blocks) {
+      doc.text(text, x, y);
+    }
+    doc.end();
+  });
+}
 
-beforeEach(() => {
-  mockPdfParse.mockReset();
-  mockReadFile.mockReset();
-});
+/** Generate a multi-page PDF with different text on each page. */
+function createMultiPagePdf(pages: string[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    for (let i = 0; i < pages.length; i++) {
+      if (i > 0) doc.addPage();
+      doc.text(pages[i], 72, 700);
+    }
+    doc.end();
+  });
+}
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+describe('parsePdfBuffer — real pdfjs-dist extraction', () => {
+  it('should extract text from a real PDF buffer', async () => {
+    const buffer = await createPdfBuffer('Patient Registration Form');
 
-describe('readPdfFile — text extraction', () => {
-  it('should extract text from a PDF buffer', async () => {
-    mockReadFile.mockResolvedValue(Buffer.from('fake-pdf-content'));
-    mockPdfParse.mockResolvedValue({
-      text: 'Patient Registration\nName: John Doe\nEmail: john@example.com',
-      numpages: 2,
-    });
+    const result = await parsePdfBuffer(buffer, 'patient-form');
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    const result = await readPdfFile('/docs/patient-form.pdf');
-
-    expect(result.description).toContain('Patient Registration');
-    expect(result.description).toContain('John Doe');
-    expect(result.rawContent).toContain('Patient Registration');
+    expect(result.description).toContain('Patient Registration Form');
+    expect(result.rawContent).toContain('Patient Registration Form');
     expect(result.confidence).toBe(0.8);
   });
 
-  it('should use first line as title', async () => {
-    mockReadFile.mockResolvedValue(Buffer.from('fake'));
-    mockPdfParse.mockResolvedValue({
-      text: 'Registration Flow\nStep 1: Enter email\nStep 2: Verify',
-      numpages: 1,
-    });
+  it('should use extracted text first line as title', async () => {
+    const buffer = await createPdfBuffer('Registration Flow');
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    const result = await readPdfFile('/specs/flow.pdf');
+    const result = await parsePdfBuffer(buffer, 'flow');
 
-    expect(result.title).toBe('Registration Flow');
+    expect(result.title).toContain('Registration Flow');
+  });
+
+  it('should fall back to idHint when content yields no lines', async () => {
+    const buffer = await createPdfBuffer('');
+
+    const result = await parsePdfBuffer(buffer, 'empty-doc');
+
+    expect(result.id).toBe('empty-doc');
   });
 });
 
-describe('readPdfFile — ID derivation', () => {
-  it('should derive ID from filename, lowercased and sanitized', async () => {
-    mockReadFile.mockResolvedValue(Buffer.from('fake'));
-    mockPdfParse.mockResolvedValue({ text: 'Content', numpages: 1 });
+describe('parsePdfBuffer — ID derivation from idHint', () => {
+  it('should derive ID from idHint, lowercased and sanitized', async () => {
+    const buffer = await createPdfBuffer('Content');
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    const result = await readPdfFile('/docs/My Feature Spec.pdf');
+    const result = await parsePdfBuffer(buffer, 'My Feature Spec');
 
     expect(result.id).toBe('my-feature-spec');
   });
 
-  it('should handle CJK characters in filename', async () => {
-    mockReadFile.mockResolvedValue(Buffer.from('fake'));
-    mockPdfParse.mockResolvedValue({ text: '内容', numpages: 1 });
+  it('should handle CJK characters in idHint', async () => {
+    // PDF text uses ASCII, but the ID is derived from idHint (not PDF content)
+    const buffer = await createPdfBuffer('content');
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    const result = await readPdfFile('/docs/患者注册.pdf');
+    const result = await parsePdfBuffer(buffer, '患者注册');
 
     expect(result.id).toBe('患者注册');
   });
 });
 
-describe('readPdfFile — error handling', () => {
-  it('should propagate errors from readFile', async () => {
-    mockReadFile.mockRejectedValue(new Error('ENOENT: no such file'));
+describe('parsePdfBuffer — complex documents', () => {
+  it('should extract text from multiple positions on a page', async () => {
+    const buffer = await createComplexPdf([
+      { text: 'System Requirements', x: 72, y: 50 },
+      { text: '1. Authentication module', x: 72, y: 100 },
+      { text: '2. Data export feature', x: 72, y: 150 },
+      { text: '3. Audit logging', x: 72, y: 200 },
+    ]);
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    await expect(readPdfFile('/nonexistent.pdf')).rejects.toThrow('ENOENT');
+    const result = await parsePdfBuffer(buffer, 'system-req');
+
+    expect(result.description).toContain('System Requirements');
+    expect(result.description).toContain('Authentication module');
+    expect(result.description).toContain('Data export feature');
+    expect(result.description).toContain('Audit logging');
   });
 
-  it('should propagate errors from pdf-parse', async () => {
-    mockReadFile.mockResolvedValue(Buffer.from('corrupted'));
-    mockPdfParse.mockRejectedValue(new Error('Invalid PDF structure'));
+  it('should extract text from a multi-page PDF', async () => {
+    const buffer = await createMultiPagePdf([
+      'Page 1: User Registration',
+      'Page 2: Password Policy',
+      'Page 3: Session Management',
+    ]);
 
-    const { readPdfFile } = await import('../../../src/core/requirement-reader/pdf-reader.js');
-    await expect(readPdfFile('/bad.pdf')).rejects.toThrow('Invalid PDF structure');
+    const result = await parsePdfBuffer(buffer, 'auth-spec');
+
+    expect(result.description).toContain('User Registration');
+    expect(result.description).toContain('Password Policy');
+    expect(result.description).toContain('Session Management');
+  });
+
+  it('should handle a long document with many lines', async () => {
+    const lines = Array.from({ length: 30 }, (_, i) =>
+      `Requirement ${i + 1}: The system shall handle ${100 + i} concurrent users`,
+    );
+    const buffer = await createComplexPdf(
+      lines.map((text, i) => ({ text, x: 72, y: 50 + i * 20 })),
+    );
+
+    const result = await parsePdfBuffer(buffer, 'load-test');
+
+    expect(result.description).toContain('Requirement 1');
+    expect(result.description).toContain('Requirement 15');
+    expect(result.description).toContain('Requirement 30');
+    expect(result.description).toContain('concurrent users');
+  });
+});
+
+describe('parsePdfBuffer — error handling', () => {
+  it('should throw on invalid buffer (not a PDF)', async () => {
+    const fakeBuffer = Buffer.from('this is not a PDF file at all');
+
+    await expect(parsePdfBuffer(fakeBuffer, 'bad')).rejects.toThrow();
   });
 });
