@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
-const hostname = 'https://cheneyzhang93.github.io'
-const base = '/speclore'
+const hostname = 'https://speclore.tech'
+const base = ''
 
 export default defineConfig({
   // ── 基础 ──────────────────────────────────────────
