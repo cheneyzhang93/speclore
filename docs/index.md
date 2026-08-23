@@ -1,9 +1,10 @@
 ---
 layout: home
 hero:
+  layout: center
   name: SpecLore
-  text: AI 时代的产研协同工具
-  tagline: 需求变规格，验收变流水线
+  text: AI 编码时代的产研协同工具
+  tagline: 把需求变成可验收的 BDD 规格，把验收变成自动化流水线
   actions:
     - theme: brand
       text: 快速开始

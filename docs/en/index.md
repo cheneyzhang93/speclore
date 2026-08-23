@@ -1,9 +1,10 @@
 ---
 layout: home
 hero:
+  layout: center
   name: SpecLore
-  text: AI-Era Product-Engineering Tool
-  tagline: Specs from requirements, pipeline from acceptance
+  text: Product-Engineering Collaboration for the AI Coding Era
+  tagline: Turn requirements into verifiable BDD specs, and acceptance testing into an automated pipeline
   actions:
     - theme: brand
       text: Get Started
