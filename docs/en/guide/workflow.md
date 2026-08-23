@@ -1,20 +1,16 @@
 # Workflow
 
+<script setup>
+import StateMachine from '/.vitepress/components/StateMachine.vue'
+</script>
+
 SpecLore's workflow is a unidirectional pipeline from requirements to acceptance, with clear states and entry conditions at each stage.
 
 ---
 
 ## State Machine
 
-```
-                    ┌──────────────────────────────────────────────────┐
-                    │                                                  │
-                    ▼                                                  │
-  (uninitialized) → setup → spec → code → (AI coding) → verify        │
-                        │        │                       │             │
-                        ▼        ▼                       ▼             │
-                    specified → constrained          verified ─────────┘
-```
+<StateMachine />
 
 | State | Meaning | Trigger |
 |-------|---------|---------|

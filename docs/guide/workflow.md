@@ -1,20 +1,16 @@
 # 工作流
 
+<script setup>
+import StateMachine from '/.vitepress/components/StateMachine.vue'
+</script>
+
 SpecLore 的工作流是一条从需求到验收的单向流水线，每个阶段有明确的状态和准入条件。
 
 ---
 
 ## 状态机
 
-```
-                    ┌──────────────────────────────────────────────────┐
-                    │                                                  │
-                    ▼                                                  │
-  (未初始化) → setup → spec → code → (AI 编码) → verify               │
-                     │        │                       │               │
-                     ▼        ▼                       ▼               │
-                 specified → constrained          verified ───────────┘
-```
+<StateMachine />
 
 | 状态 | 含义 | 触发方式 |
 |------|------|---------|

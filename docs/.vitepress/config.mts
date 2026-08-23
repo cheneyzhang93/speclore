@@ -38,6 +38,9 @@ export default defineConfig({
     ['meta', { name: 'twitter:image', content: hostname + base + '/og-image.png' }],
   ],
 
+  // ── 暗色模式默认 ──────────────────────────────────
+  appearance: 'dark',
+
   // ── 构建 ──────────────────────────────────────────
   lastUpdated: true,
 
