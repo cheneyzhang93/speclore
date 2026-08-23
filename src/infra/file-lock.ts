@@ -51,7 +51,7 @@ export function acquireLock(specLoreDir: string): boolean {
     writeFileSync(lockPath, JSON.stringify(lockInfo), { flag: 'wx', encoding: 'utf-8' });
   } catch {
     // Another process acquired the lock between our check and write
-    logger.debug('Lock write failed — another process may have acquired it');
+    logger.debug('Lock write failed - another process may have acquired it');
     return false;
   }
   logger.debug(`Lock acquired by PID ${process.pid}`);

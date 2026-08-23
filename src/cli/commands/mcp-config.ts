@@ -49,7 +49,7 @@ export function registerMcpConfigCommands(program: Command): void {
 
       logger.info(`Configuring MCP for ${clientLabel(client)}...`);
       writeMcpForClient(projectRoot, client);
-      logger.info(`✓ ${clientLabel(client)} MCP configured at ${getMcpPath(projectRoot, client)}`);
+      logger.info(`[OK] ${clientLabel(client)} MCP configured at ${getMcpPath(projectRoot, client)}`);
     });
 
   // ── mcp remove <client> ───────────────────────────────────────────────────
@@ -69,7 +69,7 @@ export function registerMcpConfigCommands(program: Command): void {
 
       const removed = removeMcpServerEntry(mcpPath, 'speclore');
       if (removed) {
-        logger.info(`✓ Removed speclore from ${clientLabel(client)}: ${mcpPath}`);
+        logger.info(`[OK] Removed speclore from ${clientLabel(client)}: ${mcpPath}`);
       } else {
         logger.info(`${clientLabel(client)}: speclore entry not found in ${mcpPath}`);
       }
@@ -83,27 +83,27 @@ export function registerMcpConfigCommands(program: Command): void {
       const projectRoot = process.cwd();
 
       logger.info('SpecLore MCP Configuration Status');
-      logger.info('─────────────────────────────────');
+      logger.info('------------------------------');
 
       let anyFound = false;
 
       for (const client of VALID_CLIENTS) {
         const mcpPath = getMcpPath(projectRoot, client);
         if (!existsSync(mcpPath)) {
-          logger.info(`  ○ ${clientLabel(client)}: no config file (${mcpPath})`);
+          logger.info(`  [-] ${clientLabel(client)}: no config file (${mcpPath})`);
           continue;
         }
 
         try {
           const config = JSON.parse(readFileSync(mcpPath, 'utf-8')) as { mcpServers?: Record<string, unknown> };
           if (config.mcpServers?.['speclore']) {
-            logger.info(`  ✓ ${clientLabel(client)}: configured → ${mcpPath}`);
+            logger.info(`  [OK] ${clientLabel(client)}: configured -> ${mcpPath}`);
             anyFound = true;
           } else {
-            logger.info(`  ○ ${clientLabel(client)}: config file exists but speclore not registered → ${mcpPath}`);
+            logger.info(`  [-] ${clientLabel(client)}: config file exists but speclore not registered -> ${mcpPath}`);
           }
         } catch {
-          logger.info(`  ✗ ${clientLabel(client)}: failed to parse ${mcpPath}`);
+          logger.info(`  [!] ${clientLabel(client)}: failed to parse ${mcpPath}`);
         }
       }
 

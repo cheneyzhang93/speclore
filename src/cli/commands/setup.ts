@@ -26,7 +26,7 @@ export function registerSetupCommand(program: Command): void {
       const projectRoot = process.cwd();
 
       logger.info('SpecLore Setup');
-      logger.info('───────────────');
+      logger.info('---------------');
 
       // 1. Detect AI tools
       const tools = detectAITools(projectRoot);
@@ -35,9 +35,9 @@ export function registerSetupCommand(program: Command): void {
         logger.info('');
         logger.info('  To enable MCP integration, open your AI client in this project first,');
         logger.info('  then re-run setup. Or use manual configuration:');
-        logger.info('    speclore mcp add cursor   — configure for Cursor');
-        logger.info('    speclore mcp add claude   — configure for Claude Code');
-        logger.info('    speclore mcp add qoder    — configure for Qoder');
+        logger.info('    speclore mcp add cursor   - configure for Cursor');
+        logger.info('    speclore mcp add claude   - configure for Claude Code');
+        logger.info('    speclore mcp add qoder    - configure for Qoder');
         logger.info('');
       } else {
         logger.info(`Detected AI tools: ${tools.map(t => t.tool).join(', ')}`);
@@ -68,18 +68,18 @@ export function registerSetupCommand(program: Command): void {
       logger.info('');
       logger.info('Setup complete! Next steps:');
       logger.info('');
-      logger.info('  Option A — CLI workflow (terminal users):');
-      logger.info('    speclore spec "your requirement"   → generate .feature');
-      logger.info('    speclore code                      → generate constraints + tests');
-      logger.info('    speclore verify                    → run acceptance');
+      logger.info('  Option A - CLI workflow (terminal users):');
+      logger.info('    speclore spec "your requirement"   -> generate .feature');
+      logger.info('    speclore code                      -> generate constraints + tests');
+      logger.info('    speclore verify                    -> run acceptance');
       logger.info('');
-      logger.info('  Option B — AI client workflow (recommended):');
+      logger.info('  Option B - AI client workflow (recommended):');
       logger.info('    Open Cursor / Qoder / Claude Code and start chatting.');
-      logger.info('    MCP is already configured — AI handles the full pipeline.');
+      logger.info('    MCP is already configured - AI handles the full pipeline.');
       logger.info('');
-      logger.info('  Optional — Pre-scan project context:');
-      logger.info('    speclore init   → scan modules/entities/APIs for better AI context');
-      logger.info('    (Not required — context is auto-built on first spec/code call)');
+      logger.info('  Optional - Pre-scan project context:');
+      logger.info('    speclore init   -> scan modules/entities/APIs for better AI context');
+      logger.info('    (Not required - context is auto-built on first spec/code call)');
     });
 }
 

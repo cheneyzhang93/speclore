@@ -77,7 +77,7 @@ export class CostTracker {
       estimatedCostUsd: cost,
     });
 
-    logger.debug(`AI usage: ${model} — ${promptTokens}+${completionTokens} tokens, ~$${cost.toFixed(4)}`);
+    logger.debug(`AI usage: ${model} - ${promptTokens}+${completionTokens} tokens, ~$${cost.toFixed(4)}`);
     return cost;
   }
 

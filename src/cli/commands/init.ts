@@ -22,7 +22,7 @@ export function registerInitCommand(program: Command): void {
       const projectRoot = process.cwd();
 
       logger.info('SpecLore Init');
-      logger.info('──────────────');
+      logger.info('--------------');
 
       const config = loadConfig(projectRoot);
       logger.info(`Project: ${config.project.name || '(unnamed)'}`);

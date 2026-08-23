@@ -123,10 +123,10 @@ export async function startMcpServer(): Promise<void> {
     mkdirSync(specLoreDir, { recursive: true });
     const locked = acquireLock(specLoreDir);
     if (!locked) {
-      logger.warn('Could not acquire lock — another SpecLore instance may be running.');
+      logger.warn('Could not acquire lock - another SpecLore instance may be running.');
     }
   } catch {
-    logger.warn('Could not acquire lock — .speclore/ directory may not exist.');
+    logger.warn('Could not acquire lock - .speclore/ directory may not exist.');
   }
 
   // Connect via stdio transport

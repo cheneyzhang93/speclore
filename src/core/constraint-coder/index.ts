@@ -76,7 +76,7 @@ export async function generateConstraints(
       try {
         await writer.write(content);
         writtenFiles.push(writer.configFile);
-        logger.info(`Constraint written via plugin: ${writer.toolName} → ${writer.configFile}`);
+        logger.info(`Constraint written via plugin: ${writer.toolName} -> ${writer.configFile}`);
       } catch (err) {
         logger.warn(`Writer plugin '${tool}' failed: ${err instanceof Error ? err.message : String(err)}`);
       }

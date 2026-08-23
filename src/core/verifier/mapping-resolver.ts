@@ -85,7 +85,7 @@ function resolveFromMappingFile(
         if (mapping.scenarios && scenario.name in mapping.scenarios) {
           const entry = mapping.scenarios[scenario.name];
           if (entry) {
-            logger.debug(`Mapping file hit: ${scenario.name} → ${entry.testMethod}`);
+            logger.debug(`Mapping file hit: ${scenario.name} -> ${entry.testMethod}`);
             return {
               name: scenario.name,
               status: 'passed', // Status will be updated by test output parsing
@@ -129,7 +129,7 @@ function resolveFromTag(
           if (match[1]!.trim() === scenario.name) {
             // Find the test method name near the tag
             const methodMatch = findTestMethodNearby(content, match.index);
-            logger.debug(`Tag hit: ${scenario.name} → ${methodMatch}`);
+            logger.debug(`Tag hit: ${scenario.name} -> ${methodMatch}`);
             return {
               name: scenario.name,
               status: 'passed',

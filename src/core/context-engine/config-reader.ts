@@ -14,7 +14,7 @@ export function readModuleConfig(config: SpecLoreConfig): ModuleBoundary[] {
   const boundaries: ModuleBoundary[] = [];
 
   for (const [name, mod] of Object.entries(config.project.modules)) {
-    logger.debug(`Reading module config: ${name} → ${mod.path}`);
+    logger.debug(`Reading module config: ${name} -> ${mod.path}`);
 
     boundaries.push({
       name,
