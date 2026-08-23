@@ -8,9 +8,9 @@ SpecLore's workflow is a unidirectional pipeline from requirements to acceptance
 
 ```mermaid
 flowchart LR
-    A(["Uninitialized"]) -->|setup| B["specified<br/>.feature generated"]
-    B -->|code| C["constrained<br/>Constraints + scaffolding"]
-    C -->|"AI Coding"| D["verified<br/>All tests passed"]
+    A(["Uninitialized"]) -->|setup| B["specified"]
+    B -->|code| C["constrained"]
+    C -->|"AI Coding"| D["verified"]
     D -.->|"Re-spec & iterate"| B
 
     style A fill:#333,stroke:#666,color:#fff

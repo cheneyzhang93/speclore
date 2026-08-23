@@ -8,9 +8,9 @@ SpecLore 的工作流是一条从需求到验收的单向流水线，每个阶�
 
 ```mermaid
 flowchart LR
-    A(["未初始化"]) -->|setup| B["specified<br/>已生成 .feature"]
-    B -->|code| C["constrained<br/>已生成约束+骨架"]
-    C -->|"AI 编码"| D["verified<br/>验收测试通过"]
+    A(["未初始化"]) -->|setup| B["specified"]
+    B -->|code| C["constrained"]
+    C -->|"AI 编码"| D["verified"]
     D -.->|"重新 spec 迭代"| B
 
     style A fill:#333,stroke:#666,color:#fff
