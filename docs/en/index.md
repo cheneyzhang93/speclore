@@ -2,8 +2,8 @@
 layout: home
 hero:
   name: SpecLore
-  text: Product-Engineering Collaboration for the AI Coding Era
-  tagline: Turn requirements into verifiable BDD specs, and acceptance testing into an automated pipeline
+  text: AI-Era Product-Engineering Tool
+  tagline: Specs from requirements, pipeline from acceptance
   actions:
     - theme: brand
       text: Get Started
@@ -11,9 +11,6 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/cheneyzhang93/speclore
-  image:
-    src: /hero-terminal.svg
-    alt: SpecLore terminal demo
 ---
 
 <InstallTabs />
