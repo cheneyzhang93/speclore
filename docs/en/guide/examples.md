@@ -1,3 +1,8 @@
+---
+title: Examples
+description: "Complete walkthrough of the SpecLore workflow using a patient registration feature: setup, .feature generation, AI constraints, and acceptance testing."
+---
+
 # Examples
 
 A complete walkthrough using the "Patient Registration" feature to demonstrate SpecLore's full workflow.

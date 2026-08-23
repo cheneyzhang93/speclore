@@ -1,3 +1,8 @@
+---
+title: 工作流
+description: "了解 SpecLore 从需求到验收的状态机工作流：specified → constrained → verified，以及 MCP 工具的强约束机制。"
+---
+
 # 工作流
 
 SpecLore 的工作流是一条从需求到验收的单向流水线，每个阶段有明确的状态和准入条件。

@@ -1,3 +1,8 @@
+---
+title: Getting Started
+description: Install SpecLore, initialize your project, and run acceptance testing in three steps. Generate BDD .feature files, AI coding constraints, and test scaffolding.
+---
+
 # Getting Started
 
 From zero to acceptance in just three steps.

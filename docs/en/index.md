@@ -1,5 +1,7 @@
 ---
 layout: home
+title: Product-Engineering Collaboration for AI Coding
+description: Turn requirements into verifiable BDD specs and acceptance testing into an automated pipeline. Works with Cursor, Claude Code, and Qoder.
 hero:
   name: SpecLore
   text: Product-Engineering Collaboration for the AI Coding Era

@@ -1,3 +1,8 @@
+---
+title: 完整示例
+description: 以患者注册功能为例，演示 SpecLore 完整工作流：初始化、生成 .feature、AI 编码约束、测试骨架与验收。
+---
+
 # 完整示例
 
 以「患者注册」功能为例，演示 SpecLore 的完整工作流。

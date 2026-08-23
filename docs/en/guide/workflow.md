@@ -1,3 +1,8 @@
+---
+title: Workflow
+description: "Understand SpecLore's state machine workflow: specified, constrained, verified. Learn about MCP tool flow and strong workflow constraints."
+---
+
 # Workflow
 
 SpecLore's workflow is a unidirectional pipeline from requirements to acceptance, with clear states and entry conditions at each stage.

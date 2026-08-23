@@ -1,3 +1,8 @@
+---
+title: 配置参考
+description: "SpecLore config.yaml 完整配置参考：项目配置、AI 提供者、Profile 模式（strict/normal/minimal）、三层交互模型与所有 CLI 命令。"
+---
+
 # 配置参考
 
 SpecLore 的配置文件位于 `.speclore/config.yaml`，由 `speclore setup` 自动生成。

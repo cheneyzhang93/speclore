@@ -1,3 +1,8 @@
+---
+title: 插件开发指南
+description: "开发 SpecLore 插件：ReaderPlugin 自定义需求来源、WriterPlugin 自定义约束输出、ParserPlugin 自定义测试解析。"
+---
+
 # SpecLore 插件开发指南
 
 ## 概述

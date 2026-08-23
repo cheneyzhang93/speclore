@@ -1,3 +1,8 @@
+---
+title: 技术架构
+description: "SpecLore 产品技术规格：核心模块（需求摄入、Feature 生成、约束编码、验收验证）、AI 适配器层、插件系统与架构设计。"
+---
+
 # SpecLore 产品技术规格
 
 > AI 产研协同 CLI 工具 — 需求结构化 → 验收自动化 → AI 约束化

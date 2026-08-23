@@ -1,3 +1,8 @@
+---
+title: MCP 工具参考
+description: "SpecLore 4 个 MCP 工具完整 I/O 参考：speclore.status、speclore.spec、speclore.code、speclore.verify 的输入输出与流程约束。"
+---
+
 # MCP 工具参考
 
 SpecLore 提供 4 个 MCP 工具，按工作流顺序使用：

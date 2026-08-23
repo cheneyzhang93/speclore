@@ -1,3 +1,8 @@
+---
+title: 测试映射
+description: SpecLore 验收验证的三种测试映射方式：映射文件（自动）、显式标记 @speclore-scenario（手动）、Pattern 匹配。
+---
+
 # 测试映射
 
 SpecLore 的验收验证（`speclore verify`）需要将测试结果映射回 `.feature` 场景。支持三种映射方式，按优先级排列。

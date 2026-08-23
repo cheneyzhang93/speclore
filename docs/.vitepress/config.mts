@@ -1,8 +1,16 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type HeadConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const hostname = 'https://speclore.tech'
 const base = ''
+
+/** Strip .md suffix and trailing /index for clean URLs */
+function toCleanUrl(path: string): string {
+  let url = path.replace(/\.md$/, '')
+  if (url === 'index') return ''
+  if (url.endsWith('/index')) url = url.slice(0, -'/index'.length)
+  return url
+}
 
 export default withMermaid(defineConfig({
   // ── 基础 ──────────────────────────────────────────
@@ -23,21 +31,75 @@ export default withMermaid(defineConfig({
     ['link', { rel: 'icon', type: 'image/svg+xml', href: base + '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#2d8f6f' }],
     ['meta', { name: 'keywords', content: 'speclore, BDD, AI coding, acceptance testing, MCP, Gherkin, cursor, claude-code, qoder, behavior-driven development' }],
-    // Open Graph
+    ['meta', { name: 'author', content: 'SpecLore Contributors' }],
+    // Open Graph（全局不变部分，每页动态部分由 transformHead 注入）
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'SpecLore - AI-Powered BDD Spec & Acceptance Testing CLI' }],
-    ['meta', { property: 'og:description', content: 'Turn requirements into verifiable BDD specs, generate AI coding constraints, and automate acceptance testing.' }],
     ['meta', { property: 'og:image', content: hostname + base + '/og-image.png' }],
-    ['meta', { property: 'og:url', content: hostname + base + '/' }],
     ['meta', { property: 'og:site_name', content: 'SpecLore' }],
-    ['meta', { property: 'og:locale', content: 'zh_CN' }],
-    ['meta', { property: 'og:locale:alternate', content: 'en_US' }],
-    // Twitter Card
+    // Twitter Card（全局不变部分）
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'SpecLore - AI-Powered BDD Spec & Acceptance Testing CLI' }],
-    ['meta', { name: 'twitter:description', content: 'Turn requirements into verifiable BDD specs, generate AI coding constraints, and automate acceptance testing.' }],
     ['meta', { name: 'twitter:image', content: hostname + base + '/og-image.png' }],
   ],
+
+  // ── 每页动态 SEO ──────────────────────────────────
+  transformHead({ pageData, siteData }): HeadConfig[] {
+    const head: HeadConfig[] = []
+    const rel = pageData.relativePath          // e.g. "guide/getting-started.md" | "en/index.md"
+    const isEn = rel.startsWith('en/')
+    const lang = isEn ? 'en_US' : 'zh_CN'
+    const cleanPath = toCleanUrl(rel)
+    const pageUrl = hostname + base + '/' + cleanPath
+
+    const fm = pageData.frontmatter
+    const title: string = fm.title || siteData.title
+    const desc: string = fm.description || siteData.description
+    // Match VitePress's <title> rendering: inner pages get " | SpecLore" suffix
+    const isHome = fm.layout === 'home'
+    const ogTitle = (!isHome && title !== siteData.title) ? `${title} | SpecLore` : title
+
+    // 每页 OG
+    head.push(['meta', { property: 'og:title', content: ogTitle }])
+    head.push(['meta', { property: 'og:description', content: desc }])
+    head.push(['meta', { property: 'og:url', content: pageUrl }])
+    head.push(['meta', { property: 'og:locale', content: lang }])
+
+    // 每页 Twitter
+    head.push(['meta', { name: 'twitter:title', content: ogTitle }])
+    head.push(['meta', { name: 'twitter:description', content: desc }])
+
+    // canonical
+    head.push(['link', { rel: 'canonical', href: pageUrl }])
+
+    // hreflang — 计算对端语言版本的 URL
+    const zhUrl = isEn
+      ? hostname + base + '/' + toCleanUrl(rel.replace(/^en\//, ''))
+      : pageUrl
+    const enUrl = isEn
+      ? pageUrl
+      : hostname + base + '/en/' + toCleanUrl(rel)
+    head.push(['link', { rel: 'alternate', hreflang: 'zh-CN', href: zhUrl }])
+    head.push(['link', { rel: 'alternate', hreflang: 'en', href: enUrl }])
+    head.push(['link', { rel: 'alternate', hreflang: 'x-default', href: zhUrl }])
+
+    // 首页 JSON-LD 结构化数据
+    if (rel === 'index.md' || rel === 'en/index.md') {
+      head.push(['script', { type: 'application/ld+json' }, JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'SpecLore',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Cross-platform',
+        description: isEn
+          ? 'Turn requirements into verifiable BDD specs and acceptance testing into an automated pipeline.'
+          : desc,
+        url: hostname,
+        license: 'https://opensource.org/licenses/MIT',
+        author: { '@type': 'Organization', name: 'SpecLore Contributors' },
+      })])
+    }
+
+    return head
+  },
 
   // ── 暗色模式默认 ──────────────────────────────────
   appearance: 'dark',
