@@ -8,23 +8,15 @@ SpecLore's workflow is a unidirectional pipeline from requirements to acceptance
 
 ```mermaid
 flowchart LR
-    A(["Uninitialized"]) -->|setup| B
-    B -->|spec| C
-    C -->|code| D
-    D -->|"AI Coding"| E
-    E -->|verify| F
-
-    B -.->|"speclore spec"| G["specified<br/>.feature generated"]
-    C -.->|"speclore code"| H["constrained<br/>Constraints + scaffolding"]
-    E -.->|"speclore verify"| I["verified<br/>All tests passed"]
-
-    G --> H
-    I -.->|"Re-spec & iterate"| B
+    A(["Uninitialized"]) -->|setup| B["specified<br/>.feature generated"]
+    B -->|code| C["constrained<br/>Constraints + scaffolding"]
+    C -->|"AI Coding"| D["verified<br/>All tests passed"]
+    D -.->|"Re-spec & iterate"| B
 
     style A fill:#333,stroke:#666,color:#fff
-    style G fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
-    style H fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
-    style I fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+    style B fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+    style C fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+    style D fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
 ```
 
 | State | Meaning | Trigger |
