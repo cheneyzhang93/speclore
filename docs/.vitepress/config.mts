@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const hostname = 'https://speclore.tech'
 const base = ''
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   // ── 基础 ──────────────────────────────────────────
   title: 'SpecLore',
   description:
@@ -182,6 +183,11 @@ export default defineConfig({
     },
   },
 
+  // ── Mermaid 图表 ──────────────────────────────────
+  mermaid: {
+    theme: 'dark',
+  },
+
   // ── 主题（共享） ──────────────────────────────────
   themeConfig: {
     logo: '/logo.svg',
@@ -199,4 +205,4 @@ export default defineConfig({
       provider: 'local',
     },
   },
-})
+}))

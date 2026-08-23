@@ -1,16 +1,31 @@
 # 工作流
 
-<script setup>
-import StateMachine from '/.vitepress/components/StateMachine.vue'
-</script>
-
 SpecLore 的工作流是一条从需求到验收的单向流水线，每个阶段有明确的状态和准入条件。
 
 ---
 
 ## 状态机
 
-<StateMachine />
+```mermaid
+flowchart LR
+    A(["未初始化"]) -->|setup| B
+    B -->|spec| C
+    C -->|code| D
+    D -->|"AI 编码"| E
+    E -->|verify| F
+
+    B -.->|"speclore spec"| G["specified<br/>已生成 .feature"]
+    C -.->|"speclore code"| H["constrained<br/>已生成约束+骨架"]
+    E -.->|"speclore verify"| I["verified<br/>验收测试通过"]
+
+    G --> H
+    I -.->|"重新 spec 迭代"| B
+
+    style A fill:#333,stroke:#666,color:#fff
+    style G fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+    style H fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+    style I fill:#1a3a3a,stroke:#2d8f6f,color:#4ecdc4
+```
 
 | 状态 | 含义 | 触发方式 |
 |------|------|---------|
