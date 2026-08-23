@@ -28,6 +28,22 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
+/* Hero 文本不换行，避免尴尬断行 */
+@media (min-width: 768px) {
+  .VPHero .text {
+    white-space: nowrap;
+    font-size: clamp(1.5rem, 3.5vw, 3rem);
+    line-height: 1.2;
+  }
+}
+
+/* 英文文本更长，需要更小字体 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html[lang="en"] .VPHero .text {
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+  }
+}
+
 /* ── 首页自定义区块间距 ────────────────────────── */
 .vp-doc > div > :first-child {
   margin-top: 0;

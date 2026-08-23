@@ -1,11 +1,11 @@
 ---
 layout: home
-title: AI 编码时代的产研协同工具
-description: 把需求变成可验收的 BDD 规格，把验收变成自动化流水线。支持 Cursor、Claude Code、Qoder 等 AI 编码工具。
+title: 需求驱动的 AI 编码工具
+description: 需求可验证，编码有约束，验收可追溯。支持 Cursor、Claude Code、Qoder 等 AI 编码工具。
 hero:
   name: SpecLore
-  text: AI 编码时代的产研协同工具
-  tagline: 把需求变成可验收的 BDD 规格，把验收变成自动化流水线
+  text: 需求驱动的 AI 编码工具
+  tagline: 需求可验证，编码有约束，验收可追溯
   actions:
     - theme: brand
       text: 快速开始

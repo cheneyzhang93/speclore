@@ -1,11 +1,11 @@
 ---
 layout: home
-title: Product-Engineering Collaboration for AI Coding
-description: Turn requirements into verifiable BDD specs and acceptance testing into an automated pipeline. Works with Cursor, Claude Code, and Qoder.
+title: Requirements-Driven AI Coding Tool
+description: Verifiable requirements, constrained coding, traceable acceptance. Works with Cursor, Claude Code, and Qoder.
 hero:
   name: SpecLore
-  text: Product-Engineering Collaboration for the AI Coding Era
-  tagline: Turn requirements into verifiable BDD specs, and acceptance testing into an automated pipeline
+  text: Requirements-Driven AI Coding Tool
+  tagline: Verifiable requirements, constrained coding, traceable acceptance
   actions:
     - theme: brand
       text: Get Started

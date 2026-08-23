@@ -16,7 +16,7 @@ export default withMermaid(defineConfig({
   // ── 基础 ──────────────────────────────────────────
   title: 'SpecLore',
   description:
-    'AI 编码时代的产研协同工具 — 把需求变成可验收的 BDD 规格，把验收变成自动化流水线',
+    '需求驱动的 AI 编码工具 — 需求可验证，编码有约束，验收可追溯',
   base: base + '/',
   srcDir: '.',
   outDir: '.vitepress/dist',
@@ -90,7 +90,7 @@ export default withMermaid(defineConfig({
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Cross-platform',
         description: isEn
-          ? 'Turn requirements into verifiable BDD specs and acceptance testing into an automated pipeline.'
+          ? 'Requirements-driven AI coding tool — verifiable requirements, constrained coding, traceable acceptance.'
           : desc,
         url: hostname,
         license: 'https://opensource.org/licenses/MIT',
