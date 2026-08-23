@@ -22,6 +22,21 @@
   padding-bottom: 2rem;
 }
 
+/* Hero 文字居中 */
+.VPHero .container {
+  text-align: center;
+}
+
+.VPHero .main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.VPHero .actions {
+  justify-content: center;
+}
+
 /* Hero image 动画 */
 .VPHero .image-src {
   border-radius: 12px;
