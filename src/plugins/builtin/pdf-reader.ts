@@ -32,9 +32,8 @@ export class PdfReader implements ReaderPlugin {
     const doc = await pdfjsLib.getDocument({
       data: uint8,
       useWorkerFetch: false,
-      isEvalSupported: false,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    }).promise as { numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str: string }> }> }>; destroy: () => void };
+    }).promise as { numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str: string }> }> }> };
 
     const textParts: string[] = [];
     for (let i = 1; i <= doc.numPages; i++) {
@@ -43,7 +42,6 @@ export class PdfReader implements ReaderPlugin {
       const pageText = textContent.items.map((item) => item.str).join('');
       if (pageText) textParts.push(pageText);
     }
-    doc.destroy();
     const text = textParts.join('\n');
 
     return [{

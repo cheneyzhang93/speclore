@@ -20,8 +20,7 @@ async function extractPdfText(dataBuffer: Buffer): Promise<string> {
   const doc = await pdfjsLib.getDocument({
     data: uint8,
     useWorkerFetch: false,
-    isEvalSupported: false,
-  }).promise as { numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str: string }> }> }>; destroy: () => void };
+  }).promise as { numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str: string }> }> }> };
 
   const textParts: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
@@ -32,7 +31,6 @@ async function extractPdfText(dataBuffer: Buffer): Promise<string> {
       .join('');
     if (pageText) textParts.push(pageText);
   }
-  doc.destroy();
   return textParts.join('\n');
 }
 
