@@ -83,7 +83,33 @@ specs/patient/register.feature
 
 ### MCP + AI 客户端（推荐）
 
-如果你使用 Cursor、Qoder 或 Claude Code，运行一次 `speclore setup` 后，直接用自然语言对话完成全流程：
+如果你使用 Cursor、Qoder 或 Claude Code，可以用自然语言对话完成全流程，无需手动执行 CLI 命令。
+
+**第一步：先用 AI 客户端打开项目**
+
+确保你的 AI 客户端（Cursor / Qoder / Claude Code）已经打开当前项目。这一步很重要，因为 `setup` 需要检测到客户端的目录才能写入 MCP 配置：
+
+| AI 客户端 | 需要存在的目录 | 写入的配置文件 |
+|-----------|--------------|---------------|
+| Cursor | `.cursor/` | `.cursor/mcp.json` |
+| Qoder | `.qoder/` | `.qoder/mcp.json` |
+| Claude Code | 无需前置 | `.mcp.json`（项目根目录） |
+
+**第二步：运行 setup**
+
+```bash
+cd your-project && speclore setup
+```
+
+`setup` 会自动检测已打开的 AI 客户端，并将 SpecLore MCP 服务器写入对应的配置文件。你**不需要手动编辑任何 MCP 配置**。
+
+**第三步：重启 AI 客户端**
+
+setup 完成后，**重启或重新打开**你的 AI 客户端，让它加载新的 MCP 配置。
+
+**第四步：直接对话**
+
+打开 AI 客户端后，直接用自然语言描述需求：
 
 > **你**：帮我实现患者注册功能，需要手机号验证
 >

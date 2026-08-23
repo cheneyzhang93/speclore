@@ -83,7 +83,33 @@ The tutorial above uses the CLI. SpecLore also supports two other approaches:
 
 ### MCP + AI Client (Recommended)
 
-If you use Cursor, Qoder, or Claude Code, run `speclore setup` once, then complete the entire workflow with natural language:
+If you use Cursor, Qoder, or Claude Code, you can complete the entire workflow with natural language — no manual CLI commands needed.
+
+**Step 1: Open your project in the AI client first**
+
+Make sure your AI client (Cursor / Qoder / Claude Code) has the current project open. This matters because `setup` needs to detect the client's directory before writing MCP config:
+
+| AI Client | Required directory | Config file written |
+|-----------|-------------------|--------------------|
+| Cursor | `.cursor/` | `.cursor/mcp.json` |
+| Qoder | `.qoder/` | `.qoder/mcp.json` |
+| Claude Code | None needed | `.mcp.json` (project root) |
+
+**Step 2: Run setup**
+
+```bash
+cd your-project && speclore setup
+```
+
+`setup` auto-detects your AI client and writes the SpecLore MCP server into the corresponding config file. You **don't need to manually edit any MCP config**.
+
+**Step 3: Restart the AI client**
+
+After setup completes, **restart or reopen** your AI client so it loads the new MCP configuration.
+
+**Step 4: Just chat**
+
+Open your AI client and describe your requirement in natural language:
 
 > **You**: Help me implement patient registration with phone verification
 >
