@@ -60,9 +60,13 @@ That's it. `setup` runs only once — after that, each new requirement is just `
 
 If you use Cursor, Qoder, or Claude Code, this is the most natural way — conversation replaces commands.
 
-**Step 1**: Run `speclore setup` once in your project directory. It auto-detects your AI tool and configures MCP.
+**Step 1**: Open your project in the AI client first. `setup` needs to detect the client's directory before writing MCP config (Cursor requires `.cursor/`, Qoder requires `.qoder/`, Claude Code needs nothing).
 
-**Step 2**: Open your AI client and start chatting:
+**Step 2**: Run `speclore setup` in your project directory. It auto-detects your AI client and writes the MCP config. You **don't need to manually edit any MCP config**.
+
+**Step 3**: **Restart or reopen** your AI client so it loads the new MCP configuration.
+
+**Step 4**: Start chatting:
 
 > **You**: Help me implement patient registration with phone verification
 

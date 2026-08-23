@@ -60,9 +60,13 @@ speclore verify
 
 如果你使用 Cursor、Qoder 或 Claude Code，这是最自然的方式 — 用对话代替命令。
 
-**第一步**：在项目目录运行一次 `speclore setup`，它会自动检测你的 AI 工具并配置 MCP。
+**第一步**：先用 AI 客户端打开项目。`setup` 需要检测到客户端目录才能写入 MCP 配置（Cursor 需要 `.cursor/`，Qoder 需要 `.qoder/`，Claude Code 无需前置）。
 
-**第二步**：打开 AI 客户端，直接对话：
+**第二步**：在项目目录运行 `speclore setup`，它会自动检测已打开的 AI 客户端并写入 MCP 配置。你**不需要手动编辑任何 MCP 配置**。
+
+**第三步**：**重启或重新打开** AI 客户端，让它加载新的 MCP 配置。
+
+**第四步**：直接对话：
 
 > **你**：帮我实现患者注册功能，需要手机号验证
 
