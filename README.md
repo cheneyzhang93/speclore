@@ -177,7 +177,7 @@ SpecLore 通过 MCP（Model Context Protocol）为 AI 客户端提供 4 个工�
 |-----------|---------|-------------|
 | Cursor | `.cursor/` 目录存在 | `.cursor/mcp.json` |
 | Claude Code | `.claude/` 目录或 `CLAUDE.md` 存在 | `.mcp.json`（项目根目录） |
-| Qoder | `.qoder/` 目录存在 | `.qoder/mcp.json` |
+| Qoder | `.qoder/` 或 `.qoder-cn/` 目录存在 | `.qoder/mcp.json` 或 `.qoder-cn/mcp.json` |
 
 **手动配置 MCP**：如果 `setup` 未检测到你的 AI 客户端，可以手动配置：
 

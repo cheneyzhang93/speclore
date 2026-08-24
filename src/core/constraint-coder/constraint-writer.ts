@@ -12,7 +12,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AITool, ConstraintContent } from '../../types/index.js';
 import { logger } from '../../infra/logger.js';
-import { toPosixPath } from '../../infra/path-utils.js';
+import { toPosixPath, resolveQoderDir } from '../../infra/path-utils.js';
 
 /**
  * Write constraint files for all detected AI tools.
@@ -143,7 +143,8 @@ function writeClaudeRule(projectRoot: string, text: string): string {
 }
 
 function writeQoderRule(projectRoot: string, text: string): string {
-  const dir = join(projectRoot, '.qoder', 'rules');
+  const qoderDir = resolveQoderDir(projectRoot);
+  const dir = join(projectRoot, qoderDir, 'rules');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
   const filePath = join(dir, 'speclore.md');

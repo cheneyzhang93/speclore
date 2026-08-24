@@ -45,6 +45,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../src/core/requirement-reader/index.js', () => ({
   readRequirement: mocks.readRequirement,
+  sanitizeSource: (s: string) => s,
 }));
 vi.mock('../../src/core/feature-generator/index.js', () => ({
   generateFeature: mocks.generateFeature,

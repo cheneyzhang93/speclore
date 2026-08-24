@@ -10,6 +10,7 @@ import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { detectInstallMethod } from '../infra/install-detector.js';
 import { logger } from '../infra/logger.js';
+import { resolveQoderDir } from '../infra/path-utils.js';
 import type { AIToolInfo } from '../types/index.js';
 
 /**
@@ -59,10 +60,12 @@ export function writeMcpForClient(projectRoot: string, client: 'cursor' | 'claud
       }
       writeClaudeMcp(projectRoot, serverCommand);
       break;
-    case 'qoder':
-      mkdirSync(join(projectRoot, '.qoder'), { recursive: true });
+    case 'qoder': {
+      const qoderDir = resolveQoderDir(projectRoot);
+      mkdirSync(join(projectRoot, qoderDir), { recursive: true });
       writeQoderMcp(projectRoot, serverCommand);
       break;
+    }
   }
 }
 
@@ -116,7 +119,8 @@ export function writeClaudeMcp(projectRoot: string, serverCmd: { command: string
 }
 
 export function writeQoderMcp(projectRoot: string, serverCmd: { command: string; args: string[] }): void {
-  const mcpDir = join(projectRoot, '.qoder');
+  const qoderDir = resolveQoderDir(projectRoot);
+  const mcpDir = join(projectRoot, qoderDir);
   if (!existsSync(mcpDir)) return;
 
   const mcpPath = join(mcpDir, 'mcp.json');

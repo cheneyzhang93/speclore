@@ -8,6 +8,7 @@
  */
 
 import { posix, sep, relative, resolve, isAbsolute, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { glob, globSync } from 'glob';
 
 /**
@@ -76,6 +77,23 @@ export function expandGlobSync(pattern: string, cwd?: string): string[] {
     nodir: true,
   });
   return matches.map(toPosixPath);
+}
+
+/**
+ * Resolve the Qoder configuration directory name.
+ * QoderCN uses `.qoder-cn` while Qoder uses `.qoder`.
+ * Returns the name of the directory that exists, or the default `.qoder`.
+ */
+export function resolveQoderDir(projectRoot: string): string {
+  if (existsSync(join(projectRoot, '.qoder-cn'))) return '.qoder-cn';
+  return '.qoder';
+}
+
+/**
+ * Check if any Qoder directory exists (.qoder or .qoder-cn).
+ */
+export function hasQoderDir(projectRoot: string): boolean {
+  return existsSync(join(projectRoot, '.qoder')) || existsSync(join(projectRoot, '.qoder-cn'));
 }
 
 /**

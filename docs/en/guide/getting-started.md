@@ -92,7 +92,7 @@ Make sure your AI client (Cursor / Qoder / Claude Code) has the current project 
 | AI Client | Required detection marker | Config file written |
 |-----------|--------------------------|--------------------|
 | Cursor | `.cursor/` directory exists | `.cursor/mcp.json` |
-| Qoder | `.qoder/` directory exists | `.qoder/mcp.json` |
+| Qoder | `.qoder/` or `.qoder-cn/` directory exists | `.qoder/mcp.json` or `.qoder-cn/mcp.json` |
 | Claude Code | `.claude/` directory or `CLAUDE.md` exists | `.mcp.json` (project root) |
 
 **Step 2: Run setup**

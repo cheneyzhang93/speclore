@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { logger } from '../../infra/logger.js';
 import { writeMcpForClient } from '../../setup/config-writer.js';
+import { resolveQoderDir } from '../../infra/path-utils.js';
 
 type McpClient = 'cursor' | 'claude' | 'qoder';
 
@@ -19,7 +20,10 @@ function getMcpPath(projectRoot: string, client: McpClient): string {
   switch (client) {
     case 'cursor': return join(projectRoot, '.cursor', 'mcp.json');
     case 'claude': return join(projectRoot, '.mcp.json');
-    case 'qoder':  return join(projectRoot, '.qoder', 'mcp.json');
+    case 'qoder': {
+      const qoderDir = resolveQoderDir(projectRoot);
+      return join(projectRoot, qoderDir, 'mcp.json');
+    }
   }
 }
 

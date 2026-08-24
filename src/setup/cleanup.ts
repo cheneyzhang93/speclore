@@ -7,6 +7,7 @@
 import { rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { logger } from '../infra/logger.js';
+import { resolveQoderDir } from '../infra/path-utils.js';
 
 /**
  * Remove SpecLore configuration and generated artifacts.
@@ -30,12 +31,13 @@ export function runTeardown(projectRoot: string, globalMode: boolean): Promise<v
     // Remove MCP entries from AI client configs
     removeMcpEntry(join(projectRoot, '.cursor', 'mcp.json'), 'speclore');
     removeMcpEntry(join(projectRoot, '.mcp.json'), 'speclore');
-    removeMcpEntry(join(projectRoot, '.qoder', 'mcp.json'), 'speclore');
+    const qoderDir = resolveQoderDir(projectRoot);
+    removeMcpEntry(join(projectRoot, qoderDir, 'mcp.json'), 'speclore');
 
     // Remove rule files
     removeIfExists(join(projectRoot, '.cursor', 'rules', 'speclore.mdc'));
     removeIfExists(join(projectRoot, '.claude', 'rules', 'speclore.md'));
-    removeIfExists(join(projectRoot, '.qoder', 'rules', 'speclore.md'));
+    removeIfExists(join(projectRoot, qoderDir, 'rules', 'speclore.md'));
 
     logger.info('Project teardown complete.');
   }

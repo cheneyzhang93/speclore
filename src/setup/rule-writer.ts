@@ -7,6 +7,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AIToolInfo } from '../types/index.js';
+import { resolveQoderDir } from '../infra/path-utils.js';
 import { logger } from '../infra/logger.js';
 
 /**
@@ -73,7 +74,8 @@ SpecLore is configured for this project. When the \`speclore.spec\` MCP tool is 
 }
 
 function writeQoderRule(projectRoot: string): void {
-  const rulesDir = join(projectRoot, '.qoder', 'rules');
+  const qoderDir = resolveQoderDir(projectRoot);
+  const rulesDir = join(projectRoot, qoderDir, 'rules');
   mkdirSync(rulesDir, { recursive: true });
 
   const content = `# SpecLore
@@ -88,5 +90,5 @@ SpecLore is configured for this project. When the \`speclore.spec\` MCP tool is 
 `;
 
   writeFileSync(join(rulesDir, 'speclore.md'), content, 'utf-8');
-  logger.info(`  Qoder rule: .qoder/rules/speclore.md`);
+  logger.info(`  Qoder rule: ${qoderDir}/rules/speclore.md`);
 }

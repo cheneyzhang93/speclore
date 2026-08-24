@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 import { join } from 'node:path';
 import { loadConfig } from '../../infra/config.js';
 import { logger } from '../../infra/logger.js';
-import { readRequirement } from '../../core/requirement-reader/index.js';
+import { readRequirement, sanitizeSource } from '../../core/requirement-reader/index.js';
 import { generateFeature } from '../../core/feature-generator/index.js';
 import { buildContext, loadContext } from '../../core/context-engine/index.js';
 import { StateManager } from '../../core/state-manager/index.js';
@@ -24,13 +24,16 @@ export function registerSpecCommand(program: Command): void {
       if (opts.verbose) logger.setLevel('debug');
       const projectRoot = process.cwd();
 
-      logger.info(`Reading requirement: ${source.slice(0, 80)}...`);
+      // Sanitize input (strip invisible Unicode from Windows path copy)
+      const cleanedSource = sanitizeSource(source);
+
+      logger.info(`Reading requirement: ${cleanedSource.slice(0, 120)}`);
 
       const config = loadConfig(projectRoot);
       const specLoreDir = join(projectRoot, '.speclore');
       const context = loadContext(specLoreDir) ?? buildContext(projectRoot, config);
 
-      const requirements = await readRequirement(source);
+      const requirements = await readRequirement(cleanedSource);
       const features = await generateFeature(requirements, context, config, projectRoot);
       logger.info(`Created: ${features.path} (${features.scenarios.length} scenarios)`);
       if (features.needsReview.length > 0) {

@@ -177,7 +177,7 @@ SpecLore provides 4 MCP tools that AI clients can call directly:
 |-----------|-----------------|----------------|
 | Cursor | `.cursor/` directory exists | `.cursor/mcp.json` |
 | Claude Code | `.claude/` directory or `CLAUDE.md` exists | `.mcp.json` (project root) |
-| Qoder | `.qoder/` directory exists | `.qoder/mcp.json` |
+| Qoder | `.qoder/` or `.qoder-cn/` directory exists | `.qoder/mcp.json` or `.qoder-cn/mcp.json` |
 
 **Manual MCP configuration**: If `setup` did not detect your AI client, configure it manually:
 

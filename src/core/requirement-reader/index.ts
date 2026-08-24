@@ -17,25 +17,48 @@ import { readDocxFile } from './docx-reader.js';
 import { readXlsxFile } from './xlsx-reader.js';
 import { readPdfFile } from './pdf-reader.js';
 import { readImageFile } from './image-reader.js';
+import { readTextFile } from './text-reader.js';
 import { readUrl } from './url-reader.js';
 
 /** Source type classification */
 type SourceType = 'file' | 'url' | 'text';
 
 /**
+ * Strip invisible Unicode formatting / bidirectional control characters
+ * that Windows may embed when copying file paths from dialogs or rich-text apps.
+ *
+ * Common offenders:
+ *   U+202A..U+202E  (LRE, RLE, PDF, LRO, RLO)
+ *   U+2066..U+2069  (LRI, RLI, FSI, PDI)
+ *   U+200B..U+200F  (ZWSP, ZWNJ, ZWJ, ZWM, LRM, RLM)
+ *   U+FEFF          (BOM / zero-width no-break space)
+ *   U+00AD          (soft hyphen)
+ */
+export function sanitizeSource(source: string): string {
+  // eslint-disable-next-line no-control-regex
+  return source.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u00AD]/g, '');
+}
+
+/**
  * Read a requirement from any source type.
  */
 export async function readRequirement(source: string): Promise<StructuredRequirement> {
-  const sourceType = classifySource(source);
-  logger.info(`Reading requirement from ${sourceType}: ${truncate(source, 80)}`);
+  // Strip invisible Unicode characters (Windows path copy artefacts)
+  const cleaned = sanitizeSource(source);
+  if (cleaned !== source) {
+    logger.debug('Stripped invisible Unicode characters from source input.');
+  }
+
+  const sourceType = classifySource(cleaned);
+  logger.info(`Reading requirement from ${sourceType}: ${truncate(cleaned, 120)}`);
 
   switch (sourceType) {
     case 'file':
-      return readFromFile(source);
+      return readFromFile(cleaned);
     case 'url':
-      return readFromUrl(source);
+      return readFromUrl(cleaned);
     case 'text':
-      return readFromText(source);
+      return readFromText(cleaned);
   }
 }
 
@@ -50,7 +73,7 @@ function classifySource(source: string): SourceType {
 
   // File detection — check if it looks like a file path and exists
   const ext = extname(source).toLowerCase();
-  const supportedExts = ['.md', '.docx', '.xlsx', '.xls', '.pdf', '.png', '.jpg', '.jpeg', '.webp'];
+  const supportedExts = ['.md', '.txt', '.docx', '.xlsx', '.xls', '.pdf', '.png', '.jpg', '.jpeg', '.webp'];
 
   if (supportedExts.includes(ext) && existsSync(source)) {
     return 'file';
@@ -59,6 +82,18 @@ function classifySource(source: string): SourceType {
   // If it's a path that exists but has no extension, treat as file
   if (existsSync(source) && (source.includes('/') || source.includes('\\'))) {
     return 'file';
+  }
+
+  // Detect path-like strings that look like files but don't exist
+  // (has path separators + a known extension) — give a clear error
+  // instead of silently treating as text.
+  if (supportedExts.includes(ext) && (source.includes('/') || source.includes('\\'))) {
+    throw new Error(
+      `File not found: ${source}\n` +
+      'The path looks like a file but does not exist. ' +
+      'Check the path and try again. If copying from Windows, ' +
+      'make sure no invisible characters are included.',
+    );
   }
 
   // Otherwise treat as direct text
@@ -88,6 +123,8 @@ async function readFromFile(filePath: string): Promise<StructuredRequirement> {
   switch (ext) {
     case '.md':
       return readMarkdownFile(filePath);
+    case '.txt':
+      return readTextFile(filePath);
     case '.docx':
       return readDocxFile(filePath);
     case '.xlsx':

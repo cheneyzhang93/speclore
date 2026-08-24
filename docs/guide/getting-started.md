@@ -92,7 +92,7 @@ specs/patient/register.feature
 | AI 客户端 | 需要存在的检测标志 | 写入的配置文件 |
 |-----------|----------------|---------------|
 | Cursor | `.cursor/` 目录 | `.cursor/mcp.json` |
-| Qoder | `.qoder/` 目录 | `.qoder/mcp.json` |
+| Qoder | `.qoder/` 或 `.qoder-cn/` 目录 | `.qoder/mcp.json` 或 `.qoder-cn/mcp.json` |
 | Claude Code | `.claude/` 目录或 `CLAUDE.md` | `.mcp.json`（项目根目录） |
 
 **第二步：运行 setup**

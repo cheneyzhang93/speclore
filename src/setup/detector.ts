@@ -7,6 +7,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AIToolInfo } from '../types/index.js';
+import { hasQoderDir } from '../infra/path-utils.js';
 
 /**
  * Detect which AI tools are present in the project.
@@ -33,12 +34,13 @@ export function detectAITools(projectRoot: string): AIToolInfo[] {
     configFiles: claudeConfigs,
   });
 
-  // Qoder
-  const qoderFiles = ['.qoder/mcp.json', '.qoder/rules'];
+  // Qoder (supports both .qoder and .qoder-cn)
+  const qoderDir = hasQoderDir(projectRoot) ? (existsSync(join(projectRoot, '.qoder-cn')) ? '.qoder-cn' : '.qoder') : '.qoder';
+  const qoderFiles = [`${qoderDir}/mcp.json`, `${qoderDir}/rules`];
   const qoderConfigs = qoderFiles.filter(f => existsSync(join(projectRoot, f)));
   tools.push({
     tool: 'qoder',
-    detected: existsSync(join(projectRoot, '.qoder')),
+    detected: hasQoderDir(projectRoot),
     configFiles: qoderConfigs,
   });
 

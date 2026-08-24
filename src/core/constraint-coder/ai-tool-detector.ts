@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AITool } from '../../types/index.js';
 import { logger } from '../../infra/logger.js';
+import { hasQoderDir } from '../../infra/path-utils.js';
 
 /**
  * Detect which AI tools are present in the project.
@@ -29,9 +30,9 @@ export function detectAITools(projectRoot: string): AITool[] {
     logger.debug('Detected Claude Code (.claude/ or CLAUDE.md)');
   }
 
-  if (existsSync(join(projectRoot, '.qoder'))) {
+  if (hasQoderDir(projectRoot)) {
     tools.push('qoder');
-    logger.debug('Detected Qoder (.qoder/)');
+    logger.debug('Detected Qoder (.qoder/ or .qoder-cn/)');
   }
 
   // Other clients are community-contributed

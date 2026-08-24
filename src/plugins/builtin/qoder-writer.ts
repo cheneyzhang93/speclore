@@ -6,20 +6,21 @@
 import { writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { WriterPlugin, ConstraintContent } from '../../types/index.js';
+import { resolveQoderDir } from '../../infra/path-utils.js';
 
 export class QoderWriter implements WriterPlugin {
   readonly toolName = 'qoder';
-  readonly configFile = '.qoder/rules/speclore.md';
 
   private projectRoot = '';
 
   detect(projectRoot: string): boolean {
-    return existsSync(join(projectRoot, '.qoder'));
+    return existsSync(join(projectRoot, '.qoder')) || existsSync(join(projectRoot, '.qoder-cn'));
   }
 
   write(constraints: ConstraintContent): Promise<void> {
     this.projectRoot = constraints.projectRoot;
-    const rulesDir = join(constraints.projectRoot, '.qoder', 'rules');
+    const qoderDir = resolveQoderDir(constraints.projectRoot);
+    const rulesDir = join(constraints.projectRoot, qoderDir, 'rules');
     mkdirSync(rulesDir, { recursive: true });
 
     const content = this.buildMarkdown(constraints);
@@ -28,7 +29,8 @@ export class QoderWriter implements WriterPlugin {
   }
 
   remove(): Promise<void> {
-    const filePath = join(this.projectRoot, '.qoder', 'rules', 'speclore.md');
+    const qoderDir = resolveQoderDir(this.projectRoot);
+    const filePath = join(this.projectRoot, qoderDir, 'rules', 'speclore.md');
     if (existsSync(filePath)) rmSync(filePath);
     return Promise.resolve();
   }

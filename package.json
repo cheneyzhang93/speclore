@@ -1,6 +1,6 @@
 {
   "name": "speclore",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "AI-powered CLI for BDD specs, coding constraints & acceptance testing. MCP-native.",
   "keywords": [
     "ai",

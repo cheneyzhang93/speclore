@@ -18,6 +18,7 @@ import { acquireLock, releaseLock } from '../infra/file-lock.js';
 import { logger } from '../infra/logger.js';
 import { executeSpecTool, executeCodeTool, executeVerifyTool, SPEC_TOOL_DESC, CODE_TOOL_DESC, VERIFY_TOOL_DESC, STATUS_TOOL_DESC } from './tools.js';
 import { executeStatusTool } from './status.js';
+import type { SpecResult, ConstraintResult, VerifyMcpResult, StatusResult } from '../types/index.js';
 import { specInputSchema, codeInputSchema, verifyInputSchema, statusInputSchema } from './schemas.js';
 import { VERSION } from '../version.js';
 import { mkdirSync } from 'node:fs';
@@ -49,7 +50,8 @@ server.registerTool(
       { source: args.source, module: args.module },
       getProjectRoot(),
     );
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    const summary = buildSpecSummary(result);
+    return { content: [{ type: 'text' as const, text: `${summary}\n\n---\n${JSON.stringify(result, null, 2)}` }] };
   },
 );
 
@@ -67,7 +69,8 @@ server.registerTool(
       { features: args.features, tools: args.tools },
       getProjectRoot(),
     );
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    const summary = buildCodeSummary(result);
+    return { content: [{ type: 'text' as const, text: `${summary}\n\n---\n${JSON.stringify(result, null, 2)}` }] };
   },
 );
 
@@ -82,7 +85,8 @@ server.registerTool(
       { features: args.features, impact: args.impact },
       getProjectRoot(),
     );
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    const summary = buildVerifySummary(result);
+    return { content: [{ type: 'text' as const, text: `${summary}\n\n---\n${JSON.stringify(result, null, 2)}` }] };
   },
 );
 
@@ -97,7 +101,8 @@ server.registerTool(
       { feature: args.feature },
       getProjectRoot(),
     );
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    const summary = buildStatusSummary(result);
+    return { content: [{ type: 'text' as const, text: `${summary}\n\n---\n${JSON.stringify(result, null, 2)}` }] };
   },
 );
 
@@ -152,4 +157,64 @@ export async function startMcpServer(): Promise<void> {
     cleanup();
     process.exit(0);
   });
+}
+
+// ============================================================================
+// Human-readable summary builders (prepended to JSON for user visibility)
+// ============================================================================
+
+function buildSpecSummary(result: SpecResult): string {
+  const lines: string[] = [];
+  lines.push('[SpecLore] Feature file generated successfully.');
+  lines.push(`  File: ${result.createdFiles.join(', ')}`);
+  lines.push(`  Scenarios: ${result.scenarios.length}`);
+  for (const sc of result.scenarios) {
+    lines.push(`    - ${sc.name}`);
+  }
+  lines.push(`  Next step: ${result.nextSteps}`);
+  return lines.join('\n');
+}
+
+function buildCodeSummary(result: ConstraintResult): string {
+  const lines: string[] = [];
+  lines.push('[SpecLore] Constraints and test scaffolding generated.');
+  lines.push(`  Constraint files: ${result.writtenFiles.length > 0 ? result.writtenFiles.join(', ') : 'none'}`);
+  lines.push(`  Test scaffold files: ${result.scaffoldFiles.length > 0 ? result.scaffoldFiles.map(s => s.testFile).join(', ') : 'none'}`);
+  lines.push(`  Next step: ${result.workflow.nextStep}`);
+  return lines.join('\n');
+}
+
+function buildVerifySummary(result: VerifyMcpResult): string {
+  const lines: string[] = [];
+  const icon = result.failed === 0 ? '[PASS]' : '[FAIL]';
+  lines.push(`[SpecLore] Verification ${icon} ${result.summary}`);
+  if (result.failed > 0) {
+    lines.push(`  Failed: ${result.failed} scenario(s)`);
+    for (const d of result.failedDetails) {
+      lines.push(`    - ${d.feature} > ${d.scenario}: ${d.error}`);
+    }
+  }
+  if (result.unmapped > 0) {
+    lines.push(`  Unmapped: ${result.unmapped} scenario(s) without test mapping`);
+  }
+  lines.push(`  Next step: ${result.workflow.nextStep}`);
+  return lines.join('\n');
+}
+
+function buildStatusSummary(result: StatusResult): string {
+  const lines: string[] = [];
+  lines.push(`[SpecLore] Project status: ${result.project.initialized ? 'initialized' : 'not initialized'}`);
+  lines.push(`  AI tools detected: ${result.project.aiToolsDetected.length > 0 ? result.project.aiToolsDetected.join(', ') : 'none'}`);
+  lines.push(`  Features: ${result.summary.total} total`);
+  if (result.summary.specified > 0) lines.push(`    - ${result.summary.specified} specified`);
+  if (result.summary.constrained > 0) lines.push(`    - ${result.summary.constrained} constrained`);
+  if (result.summary.coding > 0) lines.push(`    - ${result.summary.coding} coding`);
+  if (result.summary.verified > 0) lines.push(`    - ${result.summary.verified} verified`);
+  if (result.recommendedActions.length > 0) {
+    lines.push('  Recommended actions:');
+    for (const action of result.recommendedActions) {
+      lines.push(`    -> ${action}`);
+    }
+  }
+  return lines.join('\n');
 }
