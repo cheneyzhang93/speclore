@@ -10,6 +10,7 @@ import { resolveQoderDir } from '../../infra/path-utils.js';
 
 export class QoderWriter implements WriterPlugin {
   readonly toolName = 'qoder';
+  readonly configFile = '.qoder/rules/speclore.md';
 
   private projectRoot = '';
 

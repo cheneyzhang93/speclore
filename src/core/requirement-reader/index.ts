@@ -35,7 +35,6 @@ type SourceType = 'file' | 'url' | 'text';
  *   U+00AD          (soft hyphen)
  */
 export function sanitizeSource(source: string): string {
-  // eslint-disable-next-line no-control-regex
   return source.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\u00AD]/g, '');
 }
 
